@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:clinicaltrials.gov)",
+      "WebFetch(domain:npiregistry.cms.hhs.gov)",
+      "WebFetch(domain:www.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:til.simonwillison.net)",
+      "WebFetch(domain:clinicaltables.nlm.nih.gov)",
+      "WebFetch(domain:www.nlm.nih.gov)",
+      "Bash(find /Users/riche/poppy -name \"migrations\" -o -name \"*.migration.*\" -o -name \"supabase.json\" 2>/dev/null | head -20)",
+      "Bash(find . -type f -name \"*.md\" -o -name \"*.txt\" -o -name \"README*\" 2>/dev/null | head -10)",
+      "WebFetch(domain:www.reddit.com)",
+      "Bash(npx next build 2>&1 | tail -30)",
+      "Bash(npx next build 2>&1 | tail -20)",
+      "Bash(npx next build 2>&1 | grep -E \"\\(error|Error|Failed|✓ Compiled|Route\\)\" | head -30)",
+      "Bash(npx next build 2>&1 | tail -5)",
+      "Bash(npx next build 2>&1 | grep -E \"\\(error|Error|Failed|✓ Compiled\\)\" | head -20)",
+      "Bash(npx next build 2>&1 | grep -E \"\\(error|Error|Failed|✓ Compiled\\)\" | head -10)",
+      "Bash(npm run *)"
+    ]
+  }
+}
