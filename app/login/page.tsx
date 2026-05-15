@@ -10,7 +10,9 @@ import { Suspense } from "react";
 function LoginForm() {
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
-  const hasError = searchParams.get("error") === "auth_failed";
+  const error = searchParams.get("error");
+  const hasError = error === "auth_failed";
+  const notAllowed = error === "not_allowed";
 
   async function handleGoogleSignIn() {
     setLoading(true);
@@ -44,6 +46,11 @@ function LoginForm() {
           Good to see you again. Sign in to pick up right where you left off.
         </p>
 
+        {notAllowed && (
+          <div className="w-full mb-5 px-4 py-3 rounded-2xl bg-amber-50 text-amber-800 text-sm text-left">
+            This is a private beta — please contact us for access.
+          </div>
+        )}
         {hasError && (
           <div className="w-full mb-5 px-4 py-3 rounded-2xl bg-red-50 text-red-600 text-sm text-left">
             Something went wrong signing you in. Please try again.

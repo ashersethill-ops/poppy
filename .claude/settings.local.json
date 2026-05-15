@@ -17,7 +17,15 @@
       "Bash(npx next build 2>&1 | tail -5)",
       "Bash(npx next build 2>&1 | grep -E \"\\(error|Error|Failed|✓ Compiled\\)\" | head -20)",
       "Bash(npx next build 2>&1 | grep -E \"\\(error|Error|Failed|✓ Compiled\\)\" | head -10)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(ls -1 /Users/riche/poppy/supabase/*.sql)",
+      "Bash(find /Users/riche/poppy -type f -name \"*.sql\" -exec grep -l \"profiles\" {} \\\\;)",
+      "Bash(find /Users/riche/poppy -name \"*.config.ts\" -o -name \"supabase.json\" | xargs cat 2>/dev/null)",
+      "Bash(npx tsc --noEmit 2>&1 | head -40)",
+      "Bash(npx tsc --noEmit 2>&1)",
+      "Bash(npx tsc --noEmit 2>&1; echo \"Exit: $?\")",
+      "Bash(git add \\\\\n  app/api/communities/route.ts \\\\\n  app/api/community-posts/route.ts \\\\\n  app/api/documents/route.ts \\\\\n  app/api/learn/route.ts \\\\\n  app/api/my-doctors/route.ts \\\\\n  app/api/overview/route.ts \\\\\n  app/api/profile/route.ts \\\\\n  app/api/specialists/route.ts \\\\\n  app/api/trials/route.ts \\\\\n  app/auth/callback/route.ts \\\\\n  app/community/page.tsx \\\\\n  app/components/Header.tsx \\\\\n  app/components/PoppyProvider.tsx \\\\\n  app/dashboard/page.tsx \\\\\n  app/layout.tsx \\\\\n  app/learn/page.tsx \\\\\n  app/overview/page.tsx \\\\\n  app/profile/page.tsx \\\\\n  app/specialist/page.tsx \\\\\n  app/trials/page.tsx \\\\\n  app/api/local-communities/ \\\\\n  app/api/onboarding/ \\\\\n  app/components/AILoadingMessage.tsx \\\\\n  app/components/GeneralContentBanner.tsx \\\\\n  app/components/UpdateButton.tsx \\\\\n  app/onboarding/ \\\\\n  app/terms/ \\\\\n  lib/profile-names.ts \\\\\n  supabase/setup-cache.sql \\\\\n  supabase/setup-location.sql \\\\\n  supabase/setup-profile-columns.sql)",
+      "Bash(git commit -m \"$\\(cat <<'EOF'\nAdd patient-centric dashboard, onboarding role flow, and community features\n\n- Full dashboard redesign: orbital hub layout, 3-column on desktop, drawer nav\n- Onboarding: role screen \\(patient/guardian\\), infers patient name from documents\n- Patient name used throughout app; greeting uses the logged-in user's own name\n- Community: filter posts by condition keywords, local communities via Claude AI\n- Overview page renamed to \"[Name]'s Story\" using patient name from context\n- Profile page: role/patient name section, save error handling, location field\n- PoppyProvider: single source of truth for displayName and greetingName\n- lib/profile-names.ts: getDisplayName / getGreetingName helpers\n- Header: patient-focused name resolved server-side from DB\n- SQL migrations: setup-profile-columns.sql ensures all profile columns exist\n- Dashboard copy: \"Where your care comes together\"\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
