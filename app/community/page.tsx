@@ -2,6 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePoppyContext } from "../components/PoppyProvider";
+import AILoadingMessage from "../components/AILoadingMessage";
+import UpdateButton from "../components/UpdateButton";
+import GeneralContentBanner from "../components/GeneralContentBanner";
+
+const COMMUNITY_MESSAGES = [
+  "Searching patient communities for your conditions…",
+  "Scanning Reddit and health forums…",
+  "Finding recent discussions relevant to you…",
+  "Discovering support groups that match your needs…",
+  "Looking for people with similar experiences…",
+  "Checking the most active communities right now…",
+];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -34,6 +46,15 @@ type SearchSource = {
   url: string;
   score: number;
   numComments: number;
+};
+
+type LocalCommunity = {
+  name: string;
+  type: "charity" | "nhs" | "helpline" | "meetup" | "facebook";
+  condition: string;
+  description: string;
+  url: string;
+  isInPerson?: boolean;
 };
 
 // ── Platform config ────────────────────────────────────────────────────────────
@@ -353,18 +374,133 @@ function AskSection({ conditions }: { conditions: string[] }) {
   );
 }
 
+// ── Local community card ──────────────────────────────────────────────────────
+
+const LOCAL_TYPE_CONFIG = {
+  charity:  { label: "Charity",  bg: "#f5f3ff", color: "#7c3aed" },
+  nhs:      { label: "NHS",      bg: "#eff6ff", color: "#1d4ed8" },
+  helpline: { label: "Helpline", bg: "#f0fdf4", color: "#15803d" },
+  meetup:   { label: "Meetup",   bg: "#fff1f2", color: "#e11d48" },
+  facebook: { label: "Facebook", bg: "#eff6ff", color: "#1877F2" },
+};
+
+function LocalCommunityCard({ community }: { community: LocalCommunity }) {
+  const tc = LOCAL_TYPE_CONFIG[community.type] ?? LOCAL_TYPE_CONFIG.charity;
+  return (
+    <div
+      className="rounded-2xl p-5 flex flex-col gap-3"
+      style={{ background: "var(--background)", boxShadow: "0 2px 12px 0 rgba(0,0,0,0.06)" }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className="text-xs font-medium px-2 py-0.5 rounded-full"
+            style={{ background: tc.bg, color: tc.color }}
+          >
+            {tc.label}
+          </span>
+          {community.isInPerson && (
+            <span
+              className="text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1"
+              style={{ background: "#f0fdf4", color: "#15803d" }}
+            >
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+              In person
+            </span>
+          )}
+        </div>
+        <span className="text-xs text-stone-400 flex-shrink-0 text-right leading-tight" style={{ maxWidth: "110px" }}>
+          {community.condition}
+        </span>
+      </div>
+      <p className="font-semibold text-sm leading-snug" style={{ color: "var(--primary)" }}>{community.name}</p>
+      <p className="text-xs text-stone-500 leading-relaxed flex-1">{community.description}</p>
+      <a
+        href={community.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1.5 text-xs font-semibold mt-auto transition-opacity hover:opacity-75"
+        style={{ color: "var(--accent)" }}
+      >
+        Find local support
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/>
+        </svg>
+      </a>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CommunityPage() {
-  const { conditions, conditionsLoaded, documents, documentsLoaded, setPageContext } = usePoppyContext();
+  const { conditions, conditionsLoaded, documents, documentsLoaded, setPageContext, credits, setCredits } = usePoppyContext();
   const [communities, setCommunities] = useState<Community[]>([]);
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [communitiesLoading, setCommunitiesLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [communitiesUpdating, setCommunitiesUpdating] = useState(false);
+  const [postsUpdating, setPostsUpdating] = useState(false);
+  const [communitiesCachedAt, setCommunitiesCachedAt] = useState<string | null>(null);
+  const [postsCachedAt, setPostsCachedAt] = useState<string | null>(null);
   const [postsSource, setPostsSource] = useState<"reddit" | "generated" | null>(null);
   const [error, setError] = useState("");
 
+  // Local communities
+  const [location, setLocation] = useState("");
+  const [locationInput, setLocationInput] = useState("");
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [localCommunities, setLocalCommunities] = useState<LocalCommunity[]>([]);
+  const [localLoading, setLocalLoading] = useState(false);
+  const [localUpdating, setLocalUpdating] = useState(false);
+  const [localCachedAt, setLocalCachedAt] = useState<string | null>(null);
+  const [localError, setLocalError] = useState("");
+
   const hasContext = conditions.length > 0 || documents.length > 0;
+
+  const conditionsKey = conditions.slice().sort().join("|");
+  const documentsKey = documents.map((d) => d.id).sort().join("|");
+
+  // Load location from profile
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then(({ profile }) => {
+        if (profile?.location) {
+          setLocation(profile.location);
+          setLocationInput(profile.location);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setProfileLoaded(true));
+  }, []);
+
+  // Load local communities when location + conditions are available
+  useEffect(() => {
+    if (!location || !conditionsLoaded || conditions.length === 0) return;
+    setLocalLoading(true);
+    setLocalError("");
+    fetch("/api/local-communities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conditions, location }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.communities) {
+          setLocalCommunities(data.communities);
+          setLocalCachedAt(data.cachedAt ?? null);
+          if (data.remainingCredits !== undefined) setCredits(data.remainingCredits);
+        } else if (data.error) {
+          setLocalError(data.error);
+        }
+      })
+      .catch(() => setLocalError("Could not load local communities."))
+      .finally(() => setLocalLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, conditionsKey, conditionsLoaded]);
 
   // Load community tiles
   useEffect(() => {
@@ -380,12 +516,14 @@ export default function CommunityPage() {
       .then((data) => {
         if (data.communities) {
           setCommunities(data.communities);
+          setCommunitiesCachedAt(data.cachedAt ?? null);
           setPageContext(`The user is on the Community page. Communities: ${data.communities.map((c: Community) => `${c.name} on ${c.platform}`).join("; ")}.`);
         } else { setError("Could not load communities."); }
       })
       .catch(() => setError("Could not load communities."))
       .finally(() => setCommunitiesLoading(false));
-  }, [conditions, conditionsLoaded, documents, documentsLoaded, hasContext, setPageContext]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conditionsKey, documentsKey, conditionsLoaded, documentsLoaded]);
 
   // Load social posts
   useEffect(() => {
@@ -398,11 +536,89 @@ export default function CommunityPage() {
     })
       .then((r) => r.json())
       .then((data) => {
-        if (data.posts) { setPosts(data.posts); setPostsSource(data.source); }
+        if (data.posts) { setPosts(data.posts); setPostsSource(data.source); setPostsCachedAt(data.cachedAt ?? null); }
       })
       .catch(() => {})
       .finally(() => setPostsLoading(false));
-  }, [conditions, conditionsLoaded]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conditionsKey, conditionsLoaded]);
+
+  async function updateCommunities() {
+    if (!hasContext || communitiesUpdating) return;
+    setCommunitiesUpdating(true);
+    try {
+      const res = await fetch("/api/communities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conditions, documentIds: documents.map((d) => d.id), forceRefresh: true }),
+      });
+      if (res.status === 402) { setError("No AI credits remaining."); return; }
+      const data = await res.json();
+      if (data.communities) {
+        setCommunities(data.communities);
+        setCommunitiesCachedAt(data.cachedAt ?? null);
+        if (data.remainingCredits !== undefined) setCredits(data.remainingCredits);
+      }
+    } catch { setError("Could not refresh communities."); }
+    finally { setCommunitiesUpdating(false); }
+  }
+
+  async function updatePosts() {
+    if (conditions.length === 0 || postsUpdating) return;
+    setPostsUpdating(true);
+    try {
+      const res = await fetch("/api/community-posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conditions, forceRefresh: true }),
+      });
+      if (res.status === 402) { setError("No AI credits remaining."); return; }
+      const data = await res.json();
+      if (data.posts) {
+        setPosts(data.posts);
+        setPostsSource(data.source);
+        setPostsCachedAt(data.cachedAt ?? null);
+        if (data.remainingCredits !== undefined) setCredits(data.remainingCredits);
+      }
+    } catch { setError("Could not refresh posts."); }
+    finally { setPostsUpdating(false); }
+  }
+
+  async function handleSetLocation(e: React.FormEvent) {
+    e.preventDefault();
+    const loc = locationInput.trim();
+    if (!loc) return;
+    setLocation(loc);
+    // Best-effort save to profile so it persists across sessions
+    try {
+      await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location: loc }),
+      });
+    } catch {}
+  }
+
+  async function updateLocalCommunities() {
+    if (!location || conditions.length === 0 || localUpdating) return;
+    setLocalUpdating(true);
+    setLocalError("");
+    try {
+      const res = await fetch("/api/local-communities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conditions, location, forceRefresh: true }),
+      });
+      if (res.status === 402) { setLocalError("No AI credits remaining."); return; }
+      const data = await res.json();
+      if (data.communities) {
+        setLocalCommunities(data.communities);
+        setLocalCachedAt(data.cachedAt ?? null);
+        if (data.remainingCredits !== undefined) setCredits(data.remainingCredits);
+      }
+    } catch { setLocalError("Could not refresh local communities."); }
+    finally { setLocalUpdating(false); }
+  }
 
   if (!communitiesLoading && conditionsLoaded && documentsLoaded && !hasContext) {
     return (
@@ -423,6 +639,12 @@ export default function CommunityPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col gap-10">
+      <GeneralContentBanner />
+
+      {/* AI loading message */}
+      {(communitiesLoading || postsLoading) && (
+        <AILoadingMessage messages={COMMUNITY_MESSAGES} />
+      )}
 
       {/* Header */}
       <div>
@@ -444,7 +666,7 @@ export default function CommunityPage() {
 
       {/* ── Community voices (social posts) ── */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <h2 className="font-semibold text-lg" style={{ color: "var(--primary)" }}>What patients are saying</h2>
           {postsSource === "reddit" && (
             <span className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-medium" style={{ background: "#fff0ec", color: "#FF4500" }}>
@@ -456,6 +678,9 @@ export default function CommunityPage() {
             <span className="text-xs px-3 py-1 rounded-full font-medium" style={{ background: "var(--soft)", color: "var(--primary)" }}>
               Representative community voices
             </span>
+          )}
+          {!postsLoading && conditions.length > 0 && (
+            <UpdateButton onClick={updatePosts} loading={postsUpdating} credits={credits} cachedAt={postsCachedAt} />
           )}
         </div>
 
@@ -471,9 +696,88 @@ export default function CommunityPage() {
       {/* ── Ask the community Q&A ── */}
       {conditions.length > 0 && <AskSection conditions={conditions} />}
 
+      {/* ── Communities Near You ── */}
+      {conditions.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <div>
+              <h2 className="font-semibold text-lg" style={{ color: "var(--primary)" }}>
+                Communities Near You
+              </h2>
+              {location && (
+                <p className="text-sm text-stone-400 mt-0.5">Local support in {location}</p>
+              )}
+            </div>
+            {location && !localLoading && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => { setLocation(""); setLocationInput(""); setLocalCommunities([]); }}
+                  className="text-xs text-stone-400 hover:underline"
+                >
+                  Change location
+                </button>
+                <UpdateButton onClick={updateLocalCommunities} loading={localUpdating} credits={credits} cachedAt={localCachedAt} />
+              </div>
+            )}
+          </div>
+
+          {!location && profileLoaded ? (
+            /* Location input prompt */
+            <div className="rounded-2xl p-6" style={{ background: "var(--soft)" }}>
+              <div className="flex items-center gap-2.5 mb-3">
+                <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--background)", color: "var(--accent)" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                  </svg>
+                </span>
+                <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>
+                  Find in-person support near you
+                </p>
+              </div>
+              <p className="text-sm text-stone-500 mb-4">
+                Enter your city or region to find local patient support groups, charity branches, and helplines close to you.
+              </p>
+              <form onSubmit={handleSetLocation} className="flex gap-2">
+                <input
+                  type="text"
+                  value={locationInput}
+                  onChange={(e) => setLocationInput(e.target.value)}
+                  placeholder="e.g. London, Manchester, New York"
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none"
+                  style={{ background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--soft)" }}
+                />
+                <button
+                  type="submit"
+                  disabled={!locationInput.trim()}
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-40 transition-opacity hover:opacity-90"
+                  style={{ background: "var(--accent)" }}
+                >
+                  Find Groups
+                </button>
+              </form>
+            </div>
+          ) : location ? (
+            <div>
+              {localError && <p className="text-red-500 text-sm mb-4">{localError}</p>}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {localLoading
+                  ? Array.from({ length: 6 }).map((_, i) => <TileSkeleton key={i} />)
+                  : localCommunities.map((c, i) => <LocalCommunityCard key={i} community={c} />)
+                }
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+
       {/* ── Community tiles ── */}
       <div>
-        <h2 className="font-semibold text-lg mb-5" style={{ color: "var(--primary)" }}>Join a Community</h2>
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <h2 className="font-semibold text-lg" style={{ color: "var(--primary)" }}>Join a Community</h2>
+          {!communitiesLoading && hasContext && (
+            <UpdateButton onClick={updateCommunities} loading={communitiesUpdating} credits={credits} cachedAt={communitiesCachedAt} />
+          )}
+        </div>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {communitiesLoading

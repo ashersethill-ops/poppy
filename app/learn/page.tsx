@@ -2,6 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { usePoppyContext } from "../components/PoppyProvider";
+import AILoadingMessage from "../components/AILoadingMessage";
+import UpdateButton from "../components/UpdateButton";
+import GeneralContentBanner from "../components/GeneralContentBanner";
+
+const LEARN_MESSAGES = [
+  "Searching the latest medical research…",
+  "Finding articles relevant to your conditions…",
+  "Reviewing recently published studies…",
+  "Curating educational content for you…",
+  "Checking clinical guidelines and literature…",
+  "Summarising key findings in plain language…",
+];
 
 type Article = {
   condition: string;
@@ -81,9 +93,11 @@ function ArticleCard({ article }: { article: Article }) {
 }
 
 export default function LearnPage() {
-  const { conditions, conditionsLoaded, documents, documentsLoaded, setPageContext } = usePoppyContext();
+  const { conditions, conditionsLoaded, documents, documentsLoaded, setPageContext, credits, setCredits } = usePoppyContext();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const hasContext = conditions.length > 0 || documents.length > 0;
@@ -115,6 +129,7 @@ export default function LearnPage() {
       .then((data) => {
         if (data.articles) {
           setArticles(data.articles);
+          setCachedAt(data.cachedAt ?? null);
           setPageContext(
             `The user is on the Learn page. Articles available: ${data.articles
               .map((a: Article) => `"${a.title}" (${a.condition})`)
@@ -128,6 +143,30 @@ export default function LearnPage() {
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conditionsKey, documentsKey, conditionsLoaded, documentsLoaded, setPageContext]);
+
+  async function updateLearn() {
+    if (!hasContext || updating) return;
+    setUpdating(true);
+    setError("");
+    try {
+      const res = await fetch("/api/learn", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conditions, documentIds: documents.map((d) => d.id), forceRefresh: true }),
+      });
+      if (res.status === 402) { setError("No AI credits remaining."); return; }
+      const data = await res.json();
+      if (data.articles) {
+        setArticles(data.articles);
+        setCachedAt(data.cachedAt ?? null);
+        if (data.remainingCredits !== undefined) setCredits(data.remainingCredits);
+      }
+    } catch {
+      setError("Could not refresh articles.");
+    } finally {
+      setUpdating(false);
+    }
+  }
 
   if (!loading && conditionsLoaded && documentsLoaded && !hasContext) {
     return (
@@ -160,18 +199,26 @@ export default function LearnPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight mb-2" style={{ color: "var(--primary)" }}>
-          Learn About Your Conditions
-        </h1>
-        <p className="text-stone-500 text-sm">
-          Plain-language guides for: {conditions.join(", ")}
-        </p>
+      <GeneralContentBanner />
+      <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight mb-2" style={{ color: "var(--primary)" }}>
+            Learn About Your Conditions
+          </h1>
+          <p className="text-stone-500 text-sm">
+            Plain-language guides for: {conditions.join(", ")}
+          </p>
+        </div>
+        {!loading && hasContext && (
+          <UpdateButton onClick={updateLearn} loading={updating} credits={credits} cachedAt={cachedAt} />
+        )}
       </div>
 
       {error && (
         <p className="text-red-500 text-sm mb-4">{error}</p>
       )}
+
+      {loading && <AILoadingMessage messages={LEARN_MESSAGES} />}
 
       <div className="flex flex-col gap-5">
         {loading

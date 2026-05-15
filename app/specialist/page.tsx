@@ -2,6 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { usePoppyContext } from "../components/PoppyProvider";
+import GeneralContentBanner from "../components/GeneralContentBanner";
+import AILoadingMessage from "../components/AILoadingMessage";
+import UpdateButton from "../components/UpdateButton";
+
+const SPECIALIST_MESSAGES = [
+  "Finding specialists for your conditions…",
+  "Reviewing practitioner credentials and expertise…",
+  "Checking who is currently accepting patients…",
+  "Matching specialties to your specific needs…",
+  "Sourcing the most relevant experts for you…",
+  "Looking up hospital affiliations and locations…",
+];
 
 type Specialist = {
   name: string;
@@ -183,14 +195,19 @@ function SpecialistCard({
 }
 
 export default function SpecialistPage() {
-  const { conditions, conditionsLoaded, documents, documentsLoaded, setPageContext } = usePoppyContext();
+  const { conditions, conditionsLoaded, documents, documentsLoaded, setPageContext, credits, setCredits } = usePoppyContext();
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
   const [savedEmails, setSavedEmails] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [showShortlistOnly, setShowShortlistOnly] = useState(false);
 
   const hasContext = conditions.length > 0 || documents.length > 0;
+
+  const conditionsKey = conditions.slice().sort().join("|");
+  const documentsKey = documents.map((d) => d.id).sort().join("|");
 
   // Load saved specialists on mount
   useEffect(() => {
@@ -222,6 +239,7 @@ export default function SpecialistPage() {
       .then((data) => {
         if (data.specialists) {
           setSpecialists(data.specialists);
+          setCachedAt(data.cachedAt ?? null);
           setPageContext(
             `The user is viewing a specialist directory page. Listed specialists: ${data.specialists
               .map((s: Specialist) => `${s.name} (${s.specialty}, ${s.city})`)
@@ -233,7 +251,32 @@ export default function SpecialistPage() {
       })
       .catch(() => setError("Could not load specialists."))
       .finally(() => setLoading(false));
-  }, [conditions, conditionsLoaded, documents, documentsLoaded, hasContext, setPageContext]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conditionsKey, documentsKey, conditionsLoaded, documentsLoaded]);
+
+  async function updateSpecialists() {
+    if (!hasContext || updating) return;
+    setUpdating(true);
+    setError("");
+    try {
+      const res = await fetch("/api/specialists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conditions, documentIds: documents.map((d) => d.id), forceRefresh: true }),
+      });
+      if (res.status === 402) { setError("No AI credits remaining."); return; }
+      const data = await res.json();
+      if (data.specialists) {
+        setSpecialists(data.specialists);
+        setCachedAt(data.cachedAt ?? null);
+        if (data.remainingCredits !== undefined) setCredits(data.remainingCredits);
+      }
+    } catch {
+      setError("Could not refresh specialists.");
+    } finally {
+      setUpdating(false);
+    }
+  }
 
   async function toggleSave(specialist: Specialist) {
     const isSaved = savedEmails.has(specialist.email);
@@ -306,6 +349,7 @@ export default function SpecialistPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
+      <GeneralContentBanner />
       <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight mb-2" style={{ color: "var(--primary)" }}>
@@ -315,6 +359,11 @@ export default function SpecialistPage() {
             Specialists matched to your conditions: {conditions.join(", ")}
           </p>
         </div>
+
+        {/* Update button */}
+        {!loading && hasContext && (
+          <UpdateButton onClick={updateSpecialists} loading={updating} credits={credits} cachedAt={cachedAt} />
+        )}
 
         {/* Shortlist filter */}
         {!loading && savedCount > 0 && (
@@ -335,6 +384,8 @@ export default function SpecialistPage() {
       {error && (
         <p className="text-red-500 text-sm mb-4">{error}</p>
       )}
+
+      {loading && <AILoadingMessage messages={SPECIALIST_MESSAGES} />}
 
       {showShortlistOnly && displayedSpecialists.length === 0 && (
         <p className="text-stone-400 text-sm">No saved specialists yet. Click the bookmark icon on any card to add one.</p>

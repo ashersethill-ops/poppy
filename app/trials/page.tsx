@@ -2,6 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { usePoppyContext } from "../components/PoppyProvider";
+import AILoadingMessage from "../components/AILoadingMessage";
+import UpdateButton from "../components/UpdateButton";
+import GeneralContentBanner from "../components/GeneralContentBanner";
+
+const TRIALS_MESSAGES = [
+  "Searching active clinical trials worldwide…",
+  "Matching eligibility criteria to your profile…",
+  "Reviewing phase and recruitment status…",
+  "Checking the latest study registrations…",
+  "Finding trials that match your conditions…",
+  "Verifying contact details and locations…",
+];
 
 type Trial = {
   condition: string;
@@ -185,9 +197,11 @@ function TrialCard({ trial }: { trial: Trial }) {
 }
 
 export default function TrialsPage() {
-  const { conditions, conditionsLoaded, documents, documentsLoaded, setPageContext } = usePoppyContext();
+  const { conditions, conditionsLoaded, documents, documentsLoaded, setPageContext, credits, setCredits } = usePoppyContext();
   const [trials, setTrials] = useState<Trial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const hasContext = conditions.length > 0 || documents.length > 0;
@@ -216,6 +230,7 @@ export default function TrialsPage() {
       .then((data) => {
         if (data.trials) {
           setTrials(data.trials);
+          setCachedAt(data.cachedAt ?? null);
           setPageContext(
             `The user is on the Trials page. Listed clinical trials: ${data.trials
               .map((t: Trial) => `"${t.title}" (${t.phase}, ${t.status}, ${t.condition}, eligibility: ${t.eligibility_match})`)
@@ -229,6 +244,30 @@ export default function TrialsPage() {
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conditionsKey, documentsKey, conditionsLoaded, documentsLoaded, setPageContext]);
+
+  async function updateTrials() {
+    if (!hasContext || updating) return;
+    setUpdating(true);
+    setError("");
+    try {
+      const res = await fetch("/api/trials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conditions, documentIds: documents.map((d) => d.id), forceRefresh: true }),
+      });
+      if (res.status === 402) { setError("No AI credits remaining."); return; }
+      const data = await res.json();
+      if (data.trials) {
+        setTrials(data.trials);
+        setCachedAt(data.cachedAt ?? null);
+        if (data.remainingCredits !== undefined) setCredits(data.remainingCredits);
+      }
+    } catch {
+      setError("Could not refresh trials.");
+    } finally {
+      setUpdating(false);
+    }
+  }
 
   if (!loading && conditionsLoaded && documentsLoaded && !hasContext) {
     return (
@@ -261,18 +300,26 @@ export default function TrialsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight mb-2" style={{ color: "var(--primary)" }}>
-          Clinical Trials
-        </h1>
-        <p className="text-stone-500 text-sm">
-          Trials matched to your conditions: {conditions.join(", ")}
-        </p>
+      <GeneralContentBanner />
+      <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight mb-2" style={{ color: "var(--primary)" }}>
+            Clinical Trials
+          </h1>
+          <p className="text-stone-500 text-sm">
+            Trials matched to your conditions: {conditions.join(", ")}
+          </p>
+        </div>
+        {!loading && hasContext && (
+          <UpdateButton onClick={updateTrials} loading={updating} credits={credits} cachedAt={cachedAt} />
+        )}
       </div>
 
       {error && (
         <p className="text-red-500 text-sm mb-4">{error}</p>
       )}
+
+      {loading && <AILoadingMessage messages={TRIALS_MESSAGES} />}
 
       <div className="flex flex-col gap-5">
         {loading

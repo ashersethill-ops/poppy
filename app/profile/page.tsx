@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import ConditionSelector from "../components/ConditionSelector";
 import { usePoppyContext } from "../components/PoppyProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -12,19 +13,37 @@ type Profile = {
   phone: string | null;
   name: string | null;
   is_custodian: boolean;
+  patient_name: string | null;
+  location: string | null;
 };
 
 export default function ProfilePage() {
-  const { conditions: contextConditions, setConditions: setContextConditions } = usePoppyContext();
+  const {
+    conditions: contextConditions,
+    setConditions: setContextConditions,
+    credits,
+    setDocuments,
+    setMessages,
+    setOnboardingCompleted,
+    setIsCustodian: setContextIsCustodian,
+    setPatientName: setContextPatientName,
+  } = usePoppyContext();
+  const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [isCustodian, setIsCustodian] = useState(false);
+  const [patientName, setPatientName] = useState("");
   const [dob, setDob] = useState("");
   const [phone, setPhone] = useState("");
   // Seed immediately from context so conditions appear without waiting for API
   const [conditions, setConditions] = useState<string[]>(contextConditions);
+  const [location, setLocation] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // null | "soft" (keep docs) | "hard" (delete all)
+  const [resetMode, setResetMode] = useState<null | "soft" | "hard">(null);
+  const [resetting, setResetting] = useState(false);
 
   // Keep local conditions in sync if context updates after mount
   useEffect(() => {
@@ -51,7 +70,9 @@ export default function ProfilePage() {
         if (Array.isArray(profile.conditions)) setConditions(profile.conditions);
         setDob(profile.date_of_birth ?? "");
         setPhone(profile.phone ?? "");
+        setLocation(profile.location ?? "");
         setIsCustodian(profile.is_custodian ?? false);
+        setPatientName(profile.patient_name ?? "");
       }
     }
     load();
@@ -60,8 +81,9 @@ export default function ProfilePage() {
   async function handleSave() {
     setSaving(true);
     setSaved(false);
+    setSaveError(null);
     try {
-      await fetch("/api/profile", {
+      const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -69,12 +91,24 @@ export default function ProfilePage() {
           conditions,
           date_of_birth: dob || null,
           phone: phone || null,
+          location: location || null,
+          is_custodian: isCustodian,
+          patient_name: isCustodian ? (patientName || null) : null,
           onboarding_completed: conditions.length > 0 ? true : undefined,
         }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        setSaveError(body.error ?? "Save failed — please try again.");
+        return;
+      }
       setContextConditions(conditions);
+      setContextIsCustodian(isCustodian);
+      setContextPatientName(isCustodian ? (patientName || null) : null);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+    } catch {
+      setSaveError("Network error — please check your connection.");
     } finally {
       setSaving(false);
     }
@@ -151,6 +185,76 @@ export default function ProfilePage() {
               placeholder="+1 (555) 000-0000"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--primary)" }}>
+              Location
+            </label>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-sm outline-none focus:border-stone-400 transition-colors"
+              style={{ background: "var(--background)", color: "var(--foreground)" }}
+              placeholder="e.g. London, Manchester, New York"
+            />
+            <p className="text-xs text-stone-400 mt-1">Used to find patient support groups near you</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Role */}
+      <section className="mb-8">
+        <h2
+          className="text-sm font-semibold uppercase tracking-wider mb-4 opacity-50"
+          style={{ color: "var(--primary)" }}
+        >
+          My Role
+        </h2>
+        <div
+          className="rounded-2xl p-6 flex flex-col gap-4"
+          style={{ background: "var(--soft)" }}
+        >
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => { setIsCustodian(false); setPatientName(""); }}
+              className="flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all border-2"
+              style={{
+                background: !isCustodian ? "var(--accent)" : "var(--background)",
+                color: !isCustodian ? "#fff" : "var(--primary)",
+                borderColor: !isCustodian ? "var(--accent)" : "transparent",
+              }}
+            >
+              I am the patient
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCustodian(true)}
+              className="flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all border-2"
+              style={{
+                background: isCustodian ? "var(--accent)" : "var(--background)",
+                color: isCustodian ? "#fff" : "var(--primary)",
+                borderColor: isCustodian ? "var(--accent)" : "transparent",
+              }}
+            >
+              I am a carer / guardian
+            </button>
+          </div>
+          {isCustodian && (
+            <div>
+              <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--primary)" }}>
+                Patient&apos;s Name
+              </label>
+              <input
+                type="text"
+                value={patientName}
+                onChange={(e) => setPatientName(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-sm outline-none focus:border-stone-400 transition-colors"
+                style={{ background: "var(--background)", color: "var(--foreground)" }}
+                placeholder="Full name of the patient you care for"
+              />
+            </div>
+          )}
         </div>
       </section>
 
@@ -167,6 +271,52 @@ export default function ProfilePage() {
           style={{ background: "var(--soft)" }}
         >
           <ConditionSelector selected={conditions} onChange={setConditions} />
+        </div>
+      </section>
+
+      {/* AI Credits */}
+      <section className="mb-8">
+        <h2
+          className="text-sm font-semibold uppercase tracking-wider mb-4 opacity-50"
+          style={{ color: "var(--primary)" }}
+        >
+          AI Credits
+        </h2>
+        <div className="rounded-2xl p-6 flex flex-col gap-4" style={{ background: "var(--soft)" }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-sm" style={{ color: "var(--primary)" }}>
+                {credits ?? "—"} credits remaining
+              </p>
+              <p className="text-xs text-stone-400 mt-0.5">
+                1 credit is spent each time you refresh AI-generated content
+              </p>
+            </div>
+            <div
+              className="text-3xl font-bold tabular-nums"
+              style={{ color: credits === 0 ? "#dc2626" : "var(--accent)" }}
+            >
+              {credits ?? "—"}
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--background)" }}>
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${Math.max(0, ((credits ?? 300) / 300) * 100)}%`,
+                background: credits !== null && credits < 50 ? "#dc2626" : "var(--accent)",
+              }}
+            />
+          </div>
+          <p className="text-xs text-stone-400">of 300 initial credits</p>
+
+          {credits === 0 && (
+            <p className="text-xs font-medium px-3 py-2 rounded-xl" style={{ background: "#fee2e2", color: "#b91c1c" }}>
+              You have used all your AI credits. Content will load from cache only.
+            </p>
+          )}
         </div>
       </section>
 
@@ -219,6 +369,140 @@ export default function ProfilePage() {
       >
         {saving ? "Saving…" : saved ? "Saved!" : "Save Changes"}
       </button>
+      {saveError && (
+        <p className="mt-3 text-sm font-medium px-3 py-2 rounded-xl" style={{ background: "#fee2e2", color: "#b91c1c" }}>
+          {saveError}
+        </p>
+      )}
+
+      {/* Reset Journey */}
+      <section className="mt-12 pt-8 border-t border-stone-200">
+        <h2
+          className="text-sm font-semibold uppercase tracking-wider mb-4 opacity-50"
+          style={{ color: "var(--primary)" }}
+        >
+          Reset Journey
+        </h2>
+        <div className="flex flex-col gap-4">
+
+          {/* Option 1 — soft reset */}
+          <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "var(--soft)" }}>
+            <div>
+              <p className="font-medium text-sm mb-0.5" style={{ color: "var(--primary)" }}>
+                Reset my journey
+              </p>
+              <p className="text-xs text-stone-400">
+                Clears your conditions, AI recommendations, and saved preferences. Your uploaded documents are kept.
+              </p>
+            </div>
+            {resetMode === "soft" ? (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={async () => {
+                    setResetting(true);
+                    try {
+                      await fetch("/api/profile", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ conditions: [] }),
+                      });
+                      setContextConditions([]);
+                      setMessages([]);
+                      router.push("/dashboard");
+                    } finally {
+                      setResetting(false);
+                      setResetMode(null);
+                    }
+                  }}
+                  disabled={resetting}
+                  className="px-5 py-2 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50"
+                  style={{ background: "#dc2626" }}
+                >
+                  {resetting ? "Resetting…" : "Yes, reset journey"}
+                </button>
+                <button
+                  onClick={() => setResetMode(null)}
+                  className="px-5 py-2 rounded-xl text-sm font-medium transition-opacity hover:opacity-70"
+                  style={{ background: "var(--background)", color: "var(--primary)" }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setResetMode("soft")}
+                disabled={resetting}
+                className="self-start px-5 py-2 rounded-xl text-sm font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
+                style={{ background: "var(--background)", color: "#dc2626" }}
+              >
+                Reset my journey
+              </button>
+            )}
+          </div>
+
+          {/* Option 2 — hard reset */}
+          <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "#fff1f2" }}>
+            <div>
+              <p className="font-medium text-sm mb-0.5" style={{ color: "#be123c" }}>
+                Reset my journey and delete all documents
+              </p>
+              <p className="text-xs" style={{ color: "#9f1239" }}>
+                Removes everything — conditions, documents, connected doctors, and AI content. You will be treated as a new user and redirected to the getting-started experience.
+              </p>
+            </div>
+            {resetMode === "hard" ? (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={async () => {
+                    setResetting(true);
+                    try {
+                      await Promise.all([
+                        fetch("/api/documents", { method: "DELETE" }),
+                        fetch("/api/my-doctors", { method: "DELETE" }),
+                        fetch("/api/profile", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ conditions: [], onboarding_completed: false }),
+                        }),
+                      ]);
+                      setContextConditions([]);
+                      setDocuments([]);
+                      setMessages([]);
+                      setOnboardingCompleted(false);
+                      router.push("/onboarding");
+                    } finally {
+                      setResetting(false);
+                      setResetMode(null);
+                    }
+                  }}
+                  disabled={resetting}
+                  className="px-5 py-2 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50"
+                  style={{ background: "#be123c" }}
+                >
+                  {resetting ? "Deleting…" : "Yes, delete everything"}
+                </button>
+                <button
+                  onClick={() => setResetMode(null)}
+                  className="px-5 py-2 rounded-xl text-sm font-medium transition-opacity hover:opacity-70"
+                  style={{ background: "var(--background)", color: "var(--primary)" }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setResetMode("hard")}
+                disabled={resetting}
+                className="self-start px-5 py-2 rounded-xl text-sm font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
+                style={{ background: "#fecdd3", color: "#be123c" }}
+              >
+                Reset and delete all documents
+              </button>
+            )}
+          </div>
+
+        </div>
+      </section>
     </div>
   );
 }

@@ -5,20 +5,23 @@ import { fetchDocumentContext } from "@/lib/fetchDocumentContext";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+const CONTENT_TYPE = "communities";
+
 export async function POST(req: NextRequest) {
-  const { conditions, documentIds } = await req.json();
+  const body = await req.json();
+  const { conditions, documentIds, forceRefresh } = body;
 
   const hasConditions = Array.isArray(conditions) && conditions.length > 0;
-  const hasDocuments = Array.isArray(documentIds) && documentIds.length > 0;
+  const hasDocuments  = Array.isArray(documentIds) && documentIds.length > 0;
 
   if (!hasConditions && !hasDocuments) {
     return NextResponse.json({ error: "conditions or documentIds required" }, { status: 400 });
   }
 
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // Enforcement: if advisor has generated content for any of these conditions,
-  // only return approved items — unverified data cannot be used on the platform.
+  // ── Advisor-approved data takes priority ───────────────────────────────────
   if (hasConditions) {
     const { data: existing } = await supabase
       .from("condition_data_sources")
@@ -32,12 +35,34 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  let documentContext = "";
-  if (hasDocuments) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      documentContext = await fetchDocumentContext(supabase, user.id, documentIds, 20000);
+  // ── Serve from cache ───────────────────────────────────────────────────────
+  if (!forceRefresh && user) {
+    const { data: cached } = await supabase
+      .from("ai_content_cache")
+      .select("content, generated_at")
+      .eq("user_id", user.id)
+      .eq("content_type", CONTENT_TYPE)
+      .maybeSingle();
+
+    if (cached) {
+      return NextResponse.json({ ...cached.content, cachedAt: cached.generated_at });
     }
+  }
+
+  // ── Deduct 1 credit ────────────────────────────────────────────────────────
+  let remainingCredits: number | undefined;
+  if (user) {
+    const { data: newCredits } = await supabase.rpc("decrement_credits", { uid: user.id });
+    if (newCredits === -1) {
+      return NextResponse.json({ error: "No AI credits remaining." }, { status: 402 });
+    }
+    remainingCredits = newCredits as number;
+  }
+
+  // ── Fetch document context ─────────────────────────────────────────────────
+  let documentContext = "";
+  if (hasDocuments && user) {
+    documentContext = await fetchDocumentContext(supabase, user.id, documentIds, 20000);
   }
 
   const patientContext = [
@@ -92,10 +117,22 @@ Rules:
       messages: [{ role: "user", content: prompt }],
     });
 
-    const raw = message.content[0].type === "text" ? message.content[0].text : "{}";
+    const raw  = message.content[0].type === "text" ? message.content[0].text : "{}";
     const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
     const data = JSON.parse(text);
-    return NextResponse.json(data);
+
+    const now = new Date().toISOString();
+    if (user) {
+      await supabase.from("ai_content_cache").upsert({
+        user_id:      user.id,
+        content_type: CONTENT_TYPE,
+        content:      data,
+        conditions:   conditions ?? [],
+        generated_at: now,
+      });
+    }
+
+    return NextResponse.json({ ...data, cachedAt: now, remainingCredits });
   } catch (err: unknown) {
     const error = err as { status?: number; message?: string };
     return NextResponse.json({ error: error.message ?? "API error" }, { status: error.status ?? 500 });

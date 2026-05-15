@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { conditions, date_of_birth, phone, onboarding_completed, name, is_doctor, is_custodian } = body;
+  const { conditions, date_of_birth, phone, onboarding_completed, name, is_doctor, is_custodian, location, patient_name } = body;
 
   const updates: Record<string, unknown> = { id: user.id };
   if (conditions !== undefined) updates.conditions = conditions;
@@ -41,6 +41,8 @@ export async function PATCH(req: NextRequest) {
   if (name !== undefined) updates.name = name;
   if (is_doctor !== undefined) updates.is_doctor = is_doctor;
   if (is_custodian !== undefined) updates.is_custodian = is_custodian;
+  if (location !== undefined) updates.location = location;
+  if (patient_name !== undefined) updates.patient_name = patient_name;
 
   const { data, error } = await supabase
     .from("profiles")

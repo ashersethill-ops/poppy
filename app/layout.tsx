@@ -3,6 +3,7 @@ import "./globals.css";
 import Header from "./components/Header";
 import PoppyProvider from "./components/PoppyProvider";
 import { createClient } from "@/lib/supabase/server";
+import { getDisplayName } from "@/lib/profile-names";
 
 export const metadata: Metadata = {
   title: "Poppy",
@@ -16,15 +17,19 @@ export default async function RootLayout({
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const displayName = user?.user_metadata?.full_name
+
+  // Fetch role flags and name fields from profile
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("is_doctor, is_custodian, conditions, name, patient_name").eq("id", user.id).maybeSingle()
+    : { data: null };
+
+  // Header always shows the patient name — same rule as the rest of the app
+  const displayName = getDisplayName(profile) ?? (
+    user?.user_metadata?.full_name
     ?? user?.user_metadata?.name
     ?? user?.email
-    ?? null;
-
-  // Fetch role flags from profile
-  const { data: profile } = user
-    ? await supabase.from("profiles").select("is_doctor, is_custodian, conditions").eq("id", user.id).maybeSingle()
-    : { data: null };
+    ?? null
+  );
 
   // Auto-detect doctor: check if this user's email has any active patient consents
   const { count: consentCount } = user?.email

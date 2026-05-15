@@ -12,7 +12,7 @@ type Role = "patient" | "doctor" | "custodian";
 const ROLE_NAV: Record<Role, { href: string; label: string }[]> = {
   patient: [
     { href: "/dashboard",  label: "Home" },
-    { href: "/overview",   label: "Overview" },
+    { href: "/overview",   label: "Story" },
     { href: "/documents",  label: "Documents" },
     { href: "/specialist", label: "Specialists" },
     { href: "/learn",      label: "Learn" },
@@ -27,7 +27,7 @@ const ROLE_NAV: Record<Role, { href: string; label: string }[]> = {
   ],
   custodian: [
     { href: "/dashboard",  label: "Home" },
-    { href: "/overview",   label: "Overview" },
+    { href: "/overview",   label: "Story" },
     { href: "/documents",  label: "Documents" },
     { href: "/specialist", label: "Specialists" },
     { href: "/learn",      label: "Learn" },
@@ -67,6 +67,9 @@ export default function Header({
   const pathname = usePathname();
   const router = useRouter();
   const { conditions, setForceOnboarding } = usePoppyContext();
+
+  // Dashboard has its own full-screen layout — no top header needed
+  if (pathname === "/dashboard") return null;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);

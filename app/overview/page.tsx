@@ -2,6 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { usePoppyContext } from "../components/PoppyProvider";
+import AILoadingMessage from "../components/AILoadingMessage";
+import UpdateButton from "../components/UpdateButton";
+import GeneralContentBanner from "../components/GeneralContentBanner";
+
+const OVERVIEW_MESSAGES = [
+  "Reviewing your health history…",
+  "Cross-referencing the latest clinical guidelines…",
+  "Analysing your uploaded documents…",
+  "Building your personalised health timeline…",
+  "Checking recent research for your conditions…",
+  "Pulling together your care overview…",
+  "Identifying your treating physicians…",
+  "Searching for relevant studies and treatments…",
+];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -356,13 +370,21 @@ const icons = {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function OverviewPage() {
-  const { conditions, conditionsLoaded, documents, documentsLoaded } = usePoppyContext();
+  const { conditions, conditionsLoaded, documents, documentsLoaded, credits, setCredits, displayName } = usePoppyContext();
   const [data, setData] = useState<OverviewData | null>(null);
   const [savedSpecialists, setSavedSpecialists] = useState<SavedSpecialist[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [error, setError] = useState("");
 
+  // Story name derived from context — no extra profile fetch needed
+  const storyName = displayName;
+
   const hasContext = conditions.length > 0 || documents.length > 0;
+
+  const conditionsKey = conditions.slice().sort().join("|");
+  const documentsKey = documents.map((d) => d.id).sort().join("|");
 
   // Load saved specialists
   useEffect(() => {
@@ -390,11 +412,36 @@ export default function OverviewPage() {
       .then((r) => r.json())
       .then((d) => {
         if (d.error) { setError("Could not load your health overview."); }
-        else { setData(d); }
+        else { setData(d); setCachedAt(d.cachedAt ?? null); }
       })
       .catch(() => setError("Could not load your health overview."))
       .finally(() => setLoading(false));
-  }, [conditions, conditionsLoaded, documents, documentsLoaded, hasContext]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conditionsKey, documentsKey, conditionsLoaded, documentsLoaded]);
+
+  async function updateOverview() {
+    if (!hasContext || updating) return;
+    setUpdating(true);
+    setError("");
+    try {
+      const res = await fetch("/api/overview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conditions, documentIds: documents.map((d) => d.id), forceRefresh: true }),
+      });
+      if (res.status === 402) { setError("No AI credits remaining."); return; }
+      const d = await res.json();
+      if (!d.error) {
+        setData(d);
+        setCachedAt(d.cachedAt ?? null);
+        if (d.remainingCredits !== undefined) setCredits(d.remainingCredits);
+      }
+    } catch {
+      setError("Could not refresh health overview.");
+    } finally {
+      setUpdating(false);
+    }
+  }
 
   // No context state
   if (!loading && conditionsLoaded && documentsLoaded && !hasContext) {
@@ -410,7 +457,7 @@ export default function OverviewPage() {
           </svg>
         </div>
         <h1 className="text-3xl font-semibold tracking-tight mb-3" style={{ color: "var(--primary)" }}>
-          Your Health Overview
+          {storyName ? `${storyName}'s Story` : "Health Overview"}
         </h1>
         <p className="text-stone-500 leading-relaxed mb-6">
           Add your conditions or upload medical documents and Poppy will build your personalised health summary.
@@ -429,10 +476,12 @@ export default function OverviewPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
+      <GeneralContentBanner />
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+        <div>
         <h1 className="text-3xl font-semibold tracking-tight mb-2" style={{ color: "var(--primary)" }}>
-          Health Overview
+          {storyName ? `${storyName}'s Story` : "Health Overview"}
         </h1>
         {conditions.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3">
@@ -447,9 +496,15 @@ export default function OverviewPage() {
             ))}
           </div>
         )}
+        </div>
+        {!loading && hasContext && (
+          <UpdateButton onClick={updateOverview} loading={updating} credits={credits} cachedAt={cachedAt} />
+        )}
       </div>
 
       {error && <p className="text-red-500 text-sm mb-6">{error}</p>}
+
+      {loading && <AILoadingMessage messages={OVERVIEW_MESSAGES} />}
 
       <div className="flex flex-col gap-5">
         {/* Timeline — full width */}
