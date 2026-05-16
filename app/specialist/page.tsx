@@ -33,6 +33,7 @@ type Specialist = {
   portraitIndex: number;
   acceptingPatients: boolean;
   category: Category;
+  nearLocation?: boolean;
 };
 
 const TABS: { id: Category; label: string; description: string }[] = [
@@ -288,10 +289,22 @@ export default function SpecialistPage() {
   const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<Category>("physician");
+  const [location, setLocation] = useState<string | null>(null);
+  const [locationLoaded, setLocationLoaded] = useState(false);
 
   const hasContext = conditions.length > 0 || documents.length > 0;
   const conditionsKey = conditions.slice().sort().join("|");
   const documentsKey = documents.map((d) => d.id).sort().join("|");
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then(({ profile }) => {
+        if (profile?.location) setLocation(profile.location);
+      })
+      .catch(() => {})
+      .finally(() => setLocationLoaded(true));
+  }, []);
 
   useEffect(() => {
     fetch("/api/saved-specialists")
@@ -305,14 +318,14 @@ export default function SpecialistPage() {
   }, []);
 
   useEffect(() => {
-    if (!conditionsLoaded || !documentsLoaded) return;
+    if (!conditionsLoaded || !documentsLoaded || !locationLoaded) return;
     if (!hasContext) { setLoading(false); return; }
 
     setLoading(true);
     fetch("/api/specialists", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conditions, documentIds: documents.map((d) => d.id) }),
+      body: JSON.stringify({ conditions, documentIds: documents.map((d) => d.id), ...(location ? { location } : {}) }),
     })
       .then((r) => r.json())
       .then((data) => {
@@ -331,7 +344,7 @@ export default function SpecialistPage() {
       .catch(() => setError("Could not load specialists."))
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conditionsKey, documentsKey, conditionsLoaded, documentsLoaded]);
+  }, [conditionsKey, documentsKey, conditionsLoaded, documentsLoaded, locationLoaded]);
 
   async function updateSpecialists() {
     if (!hasContext || updating) return;
@@ -341,7 +354,7 @@ export default function SpecialistPage() {
       const res = await fetch("/api/specialists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conditions, documentIds: documents.map((d) => d.id), forceRefresh: true }),
+        body: JSON.stringify({ conditions, documentIds: documents.map((d) => d.id), forceRefresh: true, ...(location ? { location } : {}) }),
       });
       if (res.status === 402) { setError("No AI credits remaining."); return; }
       const data = await res.json();
@@ -408,13 +421,19 @@ export default function SpecialistPage() {
 
   const tabColor = TAB_COLOR[activeTab];
   const tabSpecialists = specialists.filter((s) => (s.category ?? "physician") === activeTab);
+  const hasNearLocation = tabSpecialists.some((s) => s.nearLocation === true);
+  const nearSpecialists = tabSpecialists.filter((s) => s.nearLocation === true);
+  const globalSpecialists = tabSpecialists.filter((s) => s.nearLocation !== true);
+
+  // Derive city from location string (e.g. "London, UK" → "London")
+  const locationCity = location ? location.split(",")[0].trim() : null;
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "40px 24px 80px" }}>
       <GeneralContentBanner />
 
       {/* Header */}
-      <div style={{ marginBottom: 32, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+      <div style={{ marginBottom: 24, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
           <Overline color="var(--poppy)" style={{ display: "block", marginBottom: 10 }}>
             specialists · matched to your particular case
@@ -431,6 +450,23 @@ export default function SpecialistPage() {
           <UpdateButton onClick={updateSpecialists} loading={updating} credits={credits} cachedAt={cachedAt} />
         )}
       </div>
+
+      {/* Location banner — shown when location is not set */}
+      {locationLoaded && !location && !loading && hasContext && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10, marginBottom: 24,
+          padding: "12px 18px", borderRadius: 12,
+          background: "rgba(196,149,106,0.08)", border: "1px solid rgba(196,149,106,0.25)",
+        }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14, color: "var(--ink-soft)", margin: 0 }}>
+            <a href="/profile" style={{ color: "var(--accent)", textDecoration: "underline", textUnderlineOffset: 2 }}>Add your location</a>
+            {" "}in your profile to find specialists near you.
+          </p>
+        </div>
+      )}
 
       {/* Tab navigation */}
       <div style={{ display: "flex", gap: 4, marginBottom: 28, flexWrap: "wrap" }}>
@@ -474,7 +510,7 @@ export default function SpecialistPage() {
       {error && <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 15, color: "#dc2626", marginBottom: 16 }}>{error}</p>}
       {loading && <AILoadingMessage messages={SPECIALIST_MESSAGES} />}
 
-      {/* Cards grid */}
+      {/* Cards — with near/global split when location is known */}
       {loading ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
           {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
@@ -483,6 +519,54 @@ export default function SpecialistPage() {
         <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 16, color: "var(--ink-faded)" }}>
           No {TABS.find((t) => t.id === activeTab)?.label.toLowerCase()} found for your profile yet.
         </p>
+      ) : location && hasNearLocation ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 36 }}>
+          {/* Near you */}
+          {nearSpecialists.length > 0 && (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={tabColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+                <Overline color={tabColor}>near you · {locationCity}</Overline>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+                {nearSpecialists.map((s, i) => (
+                  <SpecialistCard
+                    key={i}
+                    specialist={s}
+                    isSaved={savedEmails.has(s.email)}
+                    onToggleSave={() => toggleSave(s)}
+                    color={PORTRAIT_COLORS[activeTab][i % PORTRAIT_COLORS[activeTab].length]}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Global / online */}
+          {globalSpecialists.length > 0 && (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faded)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                </svg>
+                <Overline>global experts · online consultations</Overline>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+                {globalSpecialists.map((s, i) => (
+                  <SpecialistCard
+                    key={i}
+                    specialist={s}
+                    isSaved={savedEmails.has(s.email)}
+                    onToggleSave={() => toggleSave(s)}
+                    color={PORTRAIT_COLORS[activeTab][(nearSpecialists.length + i) % PORTRAIT_COLORS[activeTab].length]}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
           {tabSpecialists.map((s, i) => (

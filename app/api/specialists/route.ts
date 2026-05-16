@@ -9,7 +9,7 @@ const CONTENT_TYPE = "specialists";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { conditions, documentIds, forceRefresh } = body;
+  const { conditions, documentIds, forceRefresh, location } = body;
 
   const hasConditions = Array.isArray(conditions) && conditions.length > 0;
   const hasDocuments  = Array.isArray(documentIds) && documentIds.length > 0;
@@ -68,8 +68,13 @@ export async function POST(req: NextRequest) {
 
   const patientContext = [
     hasConditions ? `Diagnosed conditions: ${conditions.join(", ")}.` : "",
+    location ? `Patient's location: ${location}.` : "",
     documentContext ? `\nMedical documents:\n${documentContext}` : "",
   ].filter(Boolean).join("\n");
+
+  const locationInstruction = location
+    ? `For each category: generate 2 specialists who practice in or near ${location} (nearLocation: true) and 1 international specialist who offers online consultations to patients globally (nearLocation: false).`
+    : `Spread across UK, US, Canada, Australia. Set nearLocation: false for all.`;
 
   const prompt = `You are generating a fictional but realistic specialist directory for a patient health app.
 
@@ -82,6 +87,8 @@ Categories and counts:
 - "physician": 3 specialists (doctors, surgeons, specialist physicians directly treating the conditions)
 - "mental_support": 3 specialists (psychologists, psychiatrists, counsellors, social workers, therapists — supporting the emotional and psychological side of living with the conditions)
 - "complementary": 3 specialists (physiotherapists, occupational therapists, nutritionists, acupuncturists, osteopaths, or other evidence-based complementary practitioners)
+
+${locationInstruction}
 
 Return ONLY a valid JSON object (no markdown, no explanation) in this exact format:
 {
@@ -101,7 +108,8 @@ Return ONLY a valid JSON object (no markdown, no explanation) in this exact form
       "phone": "+44 20 7352 8121",
       "gender": "female",
       "portraitIndex": 23,
-      "acceptingPatients": true
+      "acceptingPatients": true,
+      "nearLocation": true
     }
   ]
 }
@@ -112,7 +120,7 @@ Rules:
 - gender must be "male" or "female"
 - portraitIndex must be a unique integer between 1 and 49
 - Mix male and female across the list
-- Spread across UK, US, Canada, Australia
+- nearLocation: true = specialist is near the patient's location; false = international expert offering online consultations
 - Realistic fictional contact details
 - bio: one sentence only — crisp and informative
 - whyContact: one sentence only — genuinely personalised to this patient's conditions/documents`;
