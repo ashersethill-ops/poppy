@@ -306,7 +306,7 @@ export default function OnboardingPage() {
   async function finishOnboarding(
     conditions: string[],
     roleData: { is_custodian: boolean; patient_name?: string },
-    loc?: { text: string; data: LocationData | null }
+    loc?: { text: string; data: { lat: number; lng: number } | null }
   ) {
     setSaving(true);
     try {
