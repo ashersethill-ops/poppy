@@ -21,6 +21,8 @@ export default function ProfilePage() {
   const {
     conditions: contextConditions,
     setConditions: setContextConditions,
+    isCustodian: ctxIsCustodian,
+    patientName: ctxPatientName,
     credits,
     setDocuments,
     setMessages,
@@ -31,8 +33,9 @@ export default function ProfilePage() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [isCustodian, setIsCustodian] = useState(false);
-  const [patientName, setPatientName] = useState("");
+  // Seed from context immediately so the correct role shows without waiting for API
+  const [isCustodian, setIsCustodian] = useState(ctxIsCustodian);
+  const [patientName, setPatientName] = useState(ctxPatientName ?? "");
   const [dob, setDob] = useState("");
   const [phone, setPhone] = useState("");
   // Seed immediately from context so conditions appear without waiting for API
@@ -45,10 +48,18 @@ export default function ProfilePage() {
   const [resetMode, setResetMode] = useState<null | "soft" | "hard">(null);
   const [resetting, setResetting] = useState(false);
 
-  // Keep local conditions in sync if context updates after mount
+  // Keep local state in sync if context updates after mount
   useEffect(() => {
     setConditions(contextConditions);
   }, [contextConditions]);
+
+  useEffect(() => {
+    setIsCustodian(ctxIsCustodian);
+  }, [ctxIsCustodian]);
+
+  useEffect(() => {
+    setPatientName(ctxPatientName ?? "");
+  }, [ctxPatientName]);
 
   useEffect(() => {
     async function load() {
