@@ -114,50 +114,79 @@ function SkeletonCard() {
   );
 }
 
+// ── Expand toggle button ──────────────────────────────────────────────────────
+
+function ExpandToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 5,
+        background: "transparent", border: "none", padding: 0, cursor: "pointer",
+        fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+        fontSize: 13, color: "var(--ink-faded)",
+      }}
+    >
+      <svg
+        width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+        style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0 }}
+      >
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
+      {expanded ? "show less" : "read more"}
+    </button>
+  );
+}
+
 // ── Featured article ──────────────────────────────────────────────────────────
 
 function FeaturedArticle({ article, color }: { article: Article; color: string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Show only first sentence of summary by default
+  const shortSummary = article.summary.split(/(?<=\.)\s/)[0] ?? article.summary;
+  const hasMore = article.summary.length > shortSummary.length || article.keyPoints.length > 0;
+
   return (
     <GardenPaper style={{ overflow: "hidden", display: "grid", gridTemplateColumns: "1fr 1.1fr", boxShadow: "0 16px 36px -22px rgba(36,26,20,0.16)" }}>
       <BotanicalCover color={color} />
-      <div style={{ padding: "36px 36px 32px" }}>
+      <div style={{ padding: "32px 32px 28px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <Overline color={color}>{article.condition}</Overline>
           <Overline>· {article.readingTime}</Overline>
         </div>
         <h2 style={{
           fontFamily: "'Newsreader', Georgia, serif",
-          fontSize: 30, lineHeight: 1.12, fontWeight: 400,
-          color: "var(--ink)", margin: "0 0 14px", letterSpacing: "-0.015em",
+          fontSize: 26, lineHeight: 1.15, fontWeight: 400,
+          color: "var(--ink)", margin: "0 0 12px", letterSpacing: "-0.015em",
         }}>
           {article.title}
         </h2>
         <p style={{
-          fontFamily: "'Newsreader', Georgia, serif", fontSize: 15.5,
-          color: "var(--ink-soft)", margin: "0 0 20px", lineHeight: 1.65,
+          fontFamily: "'Newsreader', Georgia, serif", fontSize: 15,
+          color: "var(--ink-soft)", margin: "0 0 14px", lineHeight: 1.65,
         }}>
-          {article.summary}
+          {expanded ? article.summary : shortSummary}
         </p>
 
-        {/* Poppy's read */}
-        {article.keyPoints.length > 0 && (
+        {expanded && article.keyPoints.length > 0 && (
           <div style={{
-            padding: "14px 18px", background: "var(--soft)", borderRadius: 12,
-            border: "1px dashed var(--rule)", marginBottom: 20,
+            padding: "12px 16px", background: "var(--soft)", borderRadius: 12,
+            border: "1px dashed var(--rule)", marginBottom: 14,
           }}>
-            <Overline color="var(--poppy-deep)" style={{ display: "block", marginBottom: 8 }}>
-              key points
-            </Overline>
-            <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+            <Overline color="var(--poppy-deep)" style={{ display: "block", marginBottom: 8 }}>key points</Overline>
+            <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 5 }}>
               {article.keyPoints.map((pt, i) => (
-                <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                  <span style={{ color: color, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 16, lineHeight: 1 }}>·</span>
-                  <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 14.5, color: "var(--ink)", lineHeight: 1.55 }}>{pt}</span>
+                <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                  <span style={{ color, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", lineHeight: 1 }}>·</span>
+                  <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 14, color: "var(--ink)", lineHeight: 1.55 }}>{pt}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
+
+        {hasMore && <ExpandToggle expanded={expanded} onToggle={() => setExpanded((v) => !v)} />}
       </div>
     </GardenPaper>
   );
@@ -166,21 +195,27 @@ function FeaturedArticle({ article, color }: { article: Article; color: string }
 // ── Further reading card ──────────────────────────────────────────────────────
 
 function FurtherReadingCard({ article, color }: { article: Article; color: string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const shortSummary = article.summary.split(/(?<=\.)\s/)[0] ?? article.summary;
+  const hasMore = article.summary.length > shortSummary.length || article.keyPoints.length > 0;
+
   return (
-    <GardenPaper style={{ padding: 22, display: "flex", flexDirection: "column", gap: 10 }}>
+    <GardenPaper style={{ padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
       <Overline color={color}>{article.condition}</Overline>
       <h3 style={{
         fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
-        fontSize: 20, fontWeight: 400, color: "var(--ink)", margin: 0, lineHeight: 1.2,
+        fontSize: 18, fontWeight: 400, color: "var(--ink)", margin: 0, lineHeight: 1.2,
       }}>
         {article.title}
       </h3>
-      <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.6, margin: 0, flex: 1 }}>
-        {article.summary}
+      <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 13.5, color: "var(--ink-soft)", lineHeight: 1.6, margin: 0 }}>
+        {expanded ? article.summary : shortSummary}
       </p>
-      {article.keyPoints.length > 0 && (
-        <ul style={{ margin: "4px 0 0", paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
-          {article.keyPoints.slice(0, 2).map((pt, i) => (
+
+      {expanded && article.keyPoints.length > 0 && (
+        <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
+          {article.keyPoints.map((pt, i) => (
             <li key={i} style={{ display: "flex", gap: 8 }}>
               <span style={{ color, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic" }}>·</span>
               <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.5 }}>{pt}</span>
@@ -188,11 +223,10 @@ function FurtherReadingCard({ article, color }: { article: Article; color: strin
           ))}
         </ul>
       )}
-      <div style={{ marginTop: "auto", paddingTop: 12, borderTop: "1px dashed var(--rule)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+
+      <div style={{ marginTop: "auto", paddingTop: 10, borderTop: "1px dashed var(--rule)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Overline>{article.readingTime}</Overline>
-        <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 13, color }}>
-          {article.condition} ›
-        </span>
+        {hasMore && <ExpandToggle expanded={expanded} onToggle={() => setExpanded((v) => !v)} />}
       </div>
     </GardenPaper>
   );

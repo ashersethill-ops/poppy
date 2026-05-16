@@ -71,12 +71,17 @@ export async function POST(req: NextRequest) {
     documentContext ? `\nMedical documents:\n${documentContext}` : "",
   ].filter(Boolean).join("\n");
 
-  const prompt = `You are generating a fictional but realistic medical specialist directory for a patient health app.
+  const prompt = `You are generating a fictional but realistic specialist directory for a patient health app.
 
 Patient profile:
 ${patientContext}
 
-Generate exactly 8 fictional but realistic medical specialists who are most relevant to this specific patient — use their conditions AND any findings from their documents (test results, diagnoses, medications, specialist referrals) to select the most appropriate specialties.
+Generate exactly 9 fictional but realistic specialists across three categories, tailored to this specific patient.
+
+Categories and counts:
+- "physician": 3 specialists (doctors, surgeons, specialist physicians directly treating the conditions)
+- "mental_support": 3 specialists (psychologists, psychiatrists, counsellors, social workers, therapists — supporting the emotional and psychological side of living with the conditions)
+- "complementary": 3 specialists (physiotherapists, occupational therapists, nutritionists, acupuncturists, osteopaths, or other evidence-based complementary practitioners)
 
 Return ONLY a valid JSON object (no markdown, no explanation) in this exact format:
 {
@@ -86,8 +91,9 @@ Return ONLY a valid JSON object (no markdown, no explanation) in this exact form
       "title": "MD, FRCP",
       "specialty": "Cardiologist",
       "subspecialty": "Heart Failure & Transplant",
-      "bio": "2-3 sentence professional profile of this specialist — their background, research focus, and clinical strengths.",
-      "whyContact": "1-2 sentence personalised explanation of why THIS specific patient should consider contacting this specialist, referencing their actual conditions, test results, or medications where relevant. Write directly to the patient (use 'you' / 'your').",
+      "category": "physician",
+      "bio": "One concise sentence describing this specialist's clinical focus and key strength.",
+      "whyContact": "One sentence explaining why this specific patient should reach out, referencing their conditions or documents. Write directly to the patient.",
       "hospital": "Royal Brompton Hospital",
       "city": "London",
       "country": "UK",
@@ -101,14 +107,15 @@ Return ONLY a valid JSON object (no markdown, no explanation) in this exact form
 }
 
 Rules:
-- Exactly 8 specialists
+- Exactly 9 specialists: 3 physician, 3 mental_support, 3 complementary
+- category must be exactly one of: "physician", "mental_support", "complementary"
 - gender must be "male" or "female"
 - portraitIndex must be a unique integer between 1 and 49
-- Mix male and female (roughly 4 each)
+- Mix male and female across the list
 - Spread across UK, US, Canada, Australia
 - Realistic fictional contact details
-- Specialties must match this patient's specific profile
-- whyContact must be genuinely personalised — reference the patient's specific conditions, medications, or document findings, not generic reasons`;
+- bio: one sentence only — crisp and informative
+- whyContact: one sentence only — genuinely personalised to this patient's conditions/documents`;
 
   try {
     const message = await client.messages.create({

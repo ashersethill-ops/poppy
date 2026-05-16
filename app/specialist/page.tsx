@@ -15,6 +15,8 @@ const SPECIALIST_MESSAGES = [
   "Looking up hospital affiliations and locations…",
 ];
 
+type Category = "physician" | "mental_support" | "complementary";
+
 type Specialist = {
   name: string;
   title: string;
@@ -30,7 +32,14 @@ type Specialist = {
   gender: "male" | "female";
   portraitIndex: number;
   acceptingPatients: boolean;
+  category: Category;
 };
+
+const TABS: { id: Category; label: string; description: string }[] = [
+  { id: "physician",      label: "Physicians",       description: "Doctors & specialist physicians treating your conditions directly." },
+  { id: "mental_support", label: "Mental Support",   description: "Psychologists, counsellors & social workers for the emotional side." },
+  { id: "complementary",  label: "Complementary",    description: "Physiotherapists, nutritionists & evidence-based alternative care." },
+];
 
 // ── Garden atoms ──────────────────────────────────────────────────────────────
 
@@ -43,16 +52,11 @@ const Overline = ({
   color?: string;
   style?: React.CSSProperties;
 }) => (
-  <span
-    style={{
-      fontFamily: "'Geist Mono', ui-monospace, monospace",
-      fontSize: 10,
-      letterSpacing: "0.14em",
-      textTransform: "uppercase" as const,
-      color: color ?? "var(--ink-faded)",
-      ...style,
-    }}
-  >
+  <span style={{
+    fontFamily: "'Geist Mono', ui-monospace, monospace",
+    fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" as const,
+    color: color ?? "var(--ink-faded)", ...style,
+  }}>
     {children}
   </span>
 );
@@ -64,79 +68,51 @@ const GardenPaper = ({
   children: React.ReactNode;
   style?: React.CSSProperties;
 }) => (
-  <div style={{ background: "var(--paper)", borderRadius: 18, border: "1px solid var(--rule)", padding: 24, ...style }}>
+  <div style={{ background: "var(--paper)", borderRadius: 18, border: "1px solid var(--rule)", ...style }}>
     {children}
   </div>
 );
 
-const Portrait = ({
-  initials,
-  color,
-  size = 64,
-}: {
-  initials: string;
-  color: string;
-  size?: number;
-}) => (
-  <div
-    style={{
-      width: size, height: size, borderRadius: "50%", flexShrink: 0,
-      background: `radial-gradient(circle at 30% 25%, ${color}55, ${color}25)`,
-      border: "1px solid var(--rule)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "'Newsreader', Georgia, serif",
-      fontStyle: "italic", fontSize: size * 0.38, color: "var(--ink)",
-    }}
-  >
-    {initials}
-  </div>
-);
+const PORTRAIT_COLORS: Record<Category, string[]> = {
+  physician:      ["var(--poppy)", "#C96B7A", "var(--accent)"],
+  mental_support: ["var(--sage)", "#7C8E6B", "#5a9a6b"],
+  complementary:  ["var(--gold)", "#B07E2C", "var(--accent)"],
+};
 
-const AcceptingBadge = ({ accepting }: { accepting: boolean }) => (
-  <span style={{
-    fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10,
-    letterSpacing: "0.12em", textTransform: "uppercase" as const,
-    padding: "4px 10px", borderRadius: 999,
-    background: accepting ? "rgba(124,142,107,0.15)" : "var(--soft)",
-    color: accepting ? "var(--sage)" : "var(--ink-faded)",
-  }}>
-    {accepting ? "● accepting" : "○ full"}
-  </span>
-);
+const TAB_COLOR: Record<Category, string> = {
+  physician:      "var(--poppy)",
+  mental_support: "var(--sage)",
+  complementary:  "var(--gold)",
+};
 
-// ── Bookmark icon ─────────────────────────────────────────────────────────────
-
-function BookmarkIcon({ filled }: { filled: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
-    </svg>
-  );
-}
-
-// ── Portrait with fallback ────────────────────────────────────────────────────
-
-const PORTRAIT_COLORS = [
-  "var(--poppy)", "var(--sage)", "var(--gold)", "#C96B7A",
-  "var(--accent)", "var(--ink-faded)",
-];
+// ── Portrait ──────────────────────────────────────────────────────────────────
 
 function SpecialistPortrait({
   specialist,
-  size = 64,
-  index = 0,
+  size = 56,
+  color,
 }: {
   specialist: Specialist;
   size?: number;
-  index?: number;
+  color: string;
 }) {
   const [failed, setFailed] = useState(false);
   const url = `https://randomuser.me/api/portraits/${specialist.gender}/${specialist.portraitIndex}.jpg`;
   const initials = specialist.name.split(" ").slice(-2).map((w) => w[0]).join("");
-  const color = PORTRAIT_COLORS[index % PORTRAIT_COLORS.length];
 
   if (failed) {
-    return <Portrait initials={initials} color={color} size={size} />;
+    return (
+      <div style={{
+        width: size, height: size, borderRadius: "50%", flexShrink: 0,
+        background: `radial-gradient(circle at 30% 25%, ${color}55, ${color}22)`,
+        border: "1px solid var(--rule)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+        fontSize: size * 0.38, color: "var(--ink)",
+      }}>
+        {initials}
+      </div>
+    );
   }
 
   return (
@@ -149,44 +125,30 @@ function SpecialistPortrait({
   );
 }
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
+// ── Bookmark icon ─────────────────────────────────────────────────────────────
 
-function SkeletonFeatured() {
+function BookmarkIcon({ filled }: { filled: boolean }) {
   return (
-    <div style={{ background: "var(--paper)", borderRadius: 22, border: "1px solid var(--rule)", padding: 32, display: "grid", gridTemplateColumns: "128px 1fr", gap: 28, animationName: "pulse", animationDuration: "2s", animationIterationCount: "infinite" }}>
-      <div style={{ width: 128, height: 128, borderRadius: "50%", background: "var(--soft)" }} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ height: 10, width: "40%", borderRadius: 999, background: "var(--soft)" }} />
-        <div style={{ height: 20, width: "70%", borderRadius: 999, background: "var(--soft)" }} />
-        <div style={{ height: 10, width: "50%", borderRadius: 999, background: "var(--soft)" }} />
-        <div style={{ height: 60, borderRadius: 12, background: "var(--soft)", marginTop: 4 }} />
-      </div>
-    </div>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+    </svg>
   );
 }
 
-function SkeletonCard() {
-  return (
-    <div style={{ background: "var(--paper)", borderRadius: 18, border: "1px solid var(--rule)", padding: 22, display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--soft)" }} />
-      <div style={{ height: 14, width: "70%", borderRadius: 999, background: "var(--soft)" }} />
-      <div style={{ height: 10, width: "50%", borderRadius: 999, background: "var(--soft)" }} />
-      <div style={{ height: 40, borderRadius: 10, background: "var(--soft)" }} />
-    </div>
-  );
-}
+// ── Specialist card ───────────────────────────────────────────────────────────
 
-// ── Featured specialist card ──────────────────────────────────────────────────
-
-function FeaturedCard({
+function SpecialistCard({
   specialist,
   isSaved,
   onToggleSave,
+  color,
 }: {
   specialist: Specialist;
   isSaved: boolean;
   onToggleSave: () => void;
+  color: string;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
 
   async function handleToggle() {
@@ -196,122 +158,30 @@ function FeaturedCard({
   }
 
   return (
-    <article style={{
-      background: "var(--paper)", borderRadius: 22, border: "1px solid var(--rule)",
-      padding: 32, display: "grid", gridTemplateColumns: "128px 1fr auto",
-      gap: 28, alignItems: "flex-start",
-      boxShadow: "0 16px 36px -22px rgba(36,26,20,0.16)",
-    }}>
-      <SpecialistPortrait specialist={specialist} size={128} index={0} />
-
-      <div>
-        <Overline color="var(--poppy)" style={{ display: "block", marginBottom: 6 }}>
-          poppy&#39;s first suggestion
-        </Overline>
-        <h2 style={{
-          fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
-          fontSize: 34, fontWeight: 400, color: "var(--ink)", margin: "0 0 4px",
-          letterSpacing: "-0.015em", lineHeight: 1.1,
-        }}>
-          {specialist.name}.
-        </h2>
-        <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 15, color: "var(--ink-soft)", margin: "0 0 4px" }}>
-          {specialist.title} · {specialist.specialty}
-        </p>
-        <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14, color: "var(--ink-faded)", margin: "0 0 16px" }}>
-          {specialist.hospital} · {specialist.city}, {specialist.country}
-        </p>
-
-        {/* Bio */}
-        {specialist.bio && (
-          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.65, margin: "0 0 16px" }}>
-            {specialist.bio}
-          </p>
-        )}
-
-        {/* Why poppy thinks they fit */}
-        {specialist.whyContact && (
-          <div style={{
-            padding: "14px 18px", borderLeft: "2px solid var(--poppy)",
-            background: "var(--soft)", borderRadius: "0 8px 8px 0", marginBottom: 18,
+    <GardenPaper style={{ padding: 20, display: "flex", flexDirection: "column", gap: 0 }}>
+      {/* Top row: portrait + name + save */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 12 }}>
+        <SpecialistPortrait specialist={specialist} size={52} color={color} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={{
+            fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+            fontSize: 18, fontWeight: 400, color: "var(--ink)", margin: "0 0 2px", lineHeight: 1.2,
           }}>
-            <Overline color="var(--poppy-deep)" style={{ display: "block", marginBottom: 6 }}>
-              why poppy thinks they fit
-            </Overline>
-            <p style={{
-              fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
-              fontSize: 15, color: "var(--ink)", margin: 0, lineHeight: 1.6,
-            }}>
-              {specialist.whyContact}
-            </p>
-          </div>
-        )}
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <AcceptingBadge accepting={specialist.acceptingPatients} />
-          {specialist.email && (
-            <a href={`mailto:${specialist.email}`} style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, letterSpacing: "0.1em", color: "var(--ink-faded)", textDecoration: "none" }}>
-              {specialist.email}
-            </a>
-          )}
-          {specialist.phone && (
-            <span style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, letterSpacing: "0.1em", color: "var(--ink-faded)" }}>
-              {specialist.phone}
-            </span>
-          )}
+            {specialist.name}
+          </h3>
+          <Overline color={color} style={{ display: "block", marginBottom: 2 }}>
+            {specialist.specialty}
+          </Overline>
+          <Overline style={{ display: "block" }}>
+            {specialist.hospital} · {specialist.city}
+          </Overline>
         </div>
-      </div>
-
-      {/* Save button */}
-      <button
-        onClick={handleToggle}
-        disabled={saving}
-        title={isSaved ? "Remove from shortlist" : "Save to shortlist"}
-        style={{
-          width: 36, height: 36, borderRadius: "50%", border: "1px solid var(--rule)",
-          background: isSaved ? "var(--poppy)" : "var(--paper)",
-          color: isSaved ? "white" : "var(--ink-faded)",
-          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <BookmarkIcon filled={isSaved} />
-      </button>
-    </article>
-  );
-}
-
-// ── Secondary specialist card ─────────────────────────────────────────────────
-
-function SecondaryCard({
-  specialist,
-  isSaved,
-  onToggleSave,
-  index,
-}: {
-  specialist: Specialist;
-  isSaved: boolean;
-  onToggleSave: () => void;
-  index: number;
-}) {
-  const [saving, setSaving] = useState(false);
-  const color = PORTRAIT_COLORS[index % PORTRAIT_COLORS.length];
-
-  async function handleToggle() {
-    setSaving(true);
-    await onToggleSave();
-    setSaving(false);
-  }
-
-  return (
-    <GardenPaper style={{ display: "flex", flexDirection: "column", gap: 14, padding: 22 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <SpecialistPortrait specialist={specialist} size={56} index={index} />
         <button
           onClick={handleToggle}
           disabled={saving}
+          title={isSaved ? "Remove from shortlist" : "Save to shortlist"}
           style={{
-            width: 28, height: 28, borderRadius: "50%", border: "1px solid var(--rule)",
+            width: 30, height: 30, borderRadius: "50%", border: "1px solid var(--rule)",
             background: isSaved ? "var(--poppy)" : "transparent",
             color: isSaved ? "white" : "var(--ink-faded)",
             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
@@ -321,38 +191,88 @@ function SecondaryCard({
         </button>
       </div>
 
-      <div>
-        <h3 style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 19, fontWeight: 400, color: "var(--ink)", margin: "0 0 2px", lineHeight: 1.2 }}>
-          {specialist.name}
-        </h3>
-        <Overline color={color} style={{ display: "block", marginBottom: 4 }}>
-          {specialist.specialty} · {specialist.city}
-        </Overline>
+      {/* Accepting badge */}
+      <div style={{ marginBottom: 12 }}>
+        <span style={{
+          fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10,
+          letterSpacing: "0.12em", textTransform: "uppercase" as const,
+          padding: "3px 9px", borderRadius: 999,
+          background: specialist.acceptingPatients ? "rgba(22,163,74,0.12)" : "var(--soft)",
+          color: specialist.acceptingPatients ? "#16a34a" : "var(--ink-faded)",
+        }}>
+          {specialist.acceptingPatients ? "● accepting" : "○ full"}
+        </span>
       </div>
 
-      {specialist.bio && (
-        <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.6, margin: 0 }}>
-          {specialist.bio}
-        </p>
-      )}
+      {/* Expand / collapse */}
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          background: "transparent", border: "none", padding: 0,
+          cursor: "pointer", marginBottom: expanded ? 14 : 0,
+          fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+          fontSize: 13, color: "var(--ink-faded)",
+          textAlign: "left",
+        }}
+      >
+        <svg
+          width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0 }}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+        {expanded ? "show less" : "read more"}
+      </button>
 
-      {specialist.whyContact && (
-        <div style={{ padding: "10px 14px", background: "var(--soft)", borderRadius: 10, borderLeft: "2px solid var(--rule)" }}>
-          <Overline style={{ display: "block", marginBottom: 4 }}>why reach out</Overline>
-          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 13.5, color: "var(--ink)", margin: 0, lineHeight: 1.55 }}>
-            {specialist.whyContact}
-          </p>
+      {/* Expanded content */}
+      {expanded && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 2 }}>
+          {specialist.bio && (
+            <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14.5, color: "var(--ink-soft)", lineHeight: 1.65, margin: 0 }}>
+              {specialist.bio}
+            </p>
+          )}
+          {specialist.whyContact && (
+            <div style={{ padding: "10px 14px", borderLeft: "2px solid " + color, background: "var(--soft)", borderRadius: "0 8px 8px 0" }}>
+              <Overline color={color} style={{ display: "block", marginBottom: 4 }}>why reach out</Overline>
+              <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 14, color: "var(--ink)", margin: 0, lineHeight: 1.55 }}>
+                {specialist.whyContact}
+              </p>
+            </div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 4, borderTop: "1px dashed var(--rule)" }}>
+            {specialist.email && (
+              <a href={`mailto:${specialist.email}`} style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, letterSpacing: "0.1em", color: "var(--ink-faded)", textDecoration: "none" }}>
+                {specialist.email}
+              </a>
+            )}
+            {specialist.phone && (
+              <span style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, letterSpacing: "0.1em", color: "var(--ink-faded)" }}>
+                {specialist.phone}
+              </span>
+            )}
+          </div>
         </div>
       )}
+    </GardenPaper>
+  );
+}
 
-      <div style={{ marginTop: "auto", paddingTop: 12, borderTop: "1px dashed var(--rule)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <AcceptingBadge accepting={specialist.acceptingPatients} />
-        {specialist.email && (
-          <a href={`mailto:${specialist.email}`} style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 13, color: color, textDecoration: "none" }}>
-            contact ›
-          </a>
-        )}
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+function SkeletonCard() {
+  return (
+    <GardenPaper style={{ padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+        <div style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--soft)", flexShrink: 0 }} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ height: 14, width: "65%", borderRadius: 999, background: "var(--soft)" }} />
+          <div style={{ height: 9, width: "45%", borderRadius: 999, background: "var(--soft)" }} />
+          <div style={{ height: 9, width: "70%", borderRadius: 999, background: "var(--soft)" }} />
+        </div>
       </div>
+      <div style={{ height: 20, width: 80, borderRadius: 999, background: "var(--soft)" }} />
     </GardenPaper>
   );
 }
@@ -367,7 +287,7 @@ export default function SpecialistPage() {
   const [updating, setUpdating] = useState(false);
   const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [showShortlistOnly, setShowShortlistOnly] = useState(false);
+  const [activeTab, setActiveTab] = useState<Category>("physician");
 
   const hasContext = conditions.length > 0 || documents.length > 0;
   const conditionsKey = conditions.slice().sort().join("|");
@@ -486,20 +406,15 @@ export default function SpecialistPage() {
     );
   }
 
-  const savedCount = savedEmails.size;
-  const displayedSpecialists = showShortlistOnly
-    ? specialists.filter((s) => savedEmails.has(s.email))
-    : specialists;
-
-  const featured = displayedSpecialists[0];
-  const others = displayedSpecialists.slice(1);
+  const tabColor = TAB_COLOR[activeTab];
+  const tabSpecialists = specialists.filter((s) => (s.category ?? "physician") === activeTab);
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "40px 24px 80px" }}>
       <GeneralContentBanner />
 
       {/* Header */}
-      <div style={{ marginBottom: 36, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+      <div style={{ marginBottom: 32, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
           <Overline color="var(--poppy)" style={{ display: "block", marginBottom: 10 }}>
             specialists · matched to your particular case
@@ -511,80 +426,74 @@ export default function SpecialistPage() {
           }}>
             doctors who <em>fit</em> your story.
           </h1>
-          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 17, color: "var(--ink-soft)", lineHeight: 1.6, margin: "12px 0 0", maxWidth: 580 }}>
-            These are not search results. Each one was chosen because Poppy could explain — in plain language — why they fit you.
-          </p>
         </div>
+        {!loading && hasContext && (
+          <UpdateButton onClick={updateSpecialists} loading={updating} credits={credits} cachedAt={cachedAt} />
+        )}
+      </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-          {!loading && hasContext && (
-            <UpdateButton onClick={updateSpecialists} loading={updating} credits={credits} cachedAt={cachedAt} />
-          )}
-          {!loading && savedCount > 0 && (
+      {/* Tab navigation */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 28, flexWrap: "wrap" }}>
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const count = specialists.filter((s) => (s.category ?? "physician") === tab.id).length;
+          return (
             <button
-              onClick={() => setShowShortlistOnly((v) => !v)}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
               style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "8px 16px", borderRadius: 999, fontSize: 13,
                 fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
-                cursor: "pointer",
-                background: showShortlistOnly ? "var(--poppy)" : "var(--soft)",
-                color: showShortlistOnly ? "white" : "var(--ink)",
-                border: "none",
+                fontSize: 15, padding: "10px 18px", borderRadius: 999, cursor: "pointer",
+                border: isActive ? `1px solid ${TAB_COLOR[tab.id]}` : "1px solid var(--rule)",
+                background: isActive ? `${TAB_COLOR[tab.id]}15` : "var(--paper)",
+                color: isActive ? TAB_COLOR[tab.id] : "var(--ink-soft)",
+                display: "flex", alignItems: "center", gap: 8,
               }}
             >
-              <BookmarkIcon filled={showShortlistOnly} />
-              shortlist ({savedCount})
+              {tab.label}
+              {!loading && count > 0 && (
+                <span style={{
+                  fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10,
+                  background: isActive ? `${TAB_COLOR[tab.id]}25` : "var(--soft)",
+                  color: isActive ? TAB_COLOR[tab.id] : "var(--ink-faded)",
+                  padding: "2px 7px", borderRadius: 999, letterSpacing: "0.06em",
+                }}>
+                  {count}
+                </span>
+              )}
             </button>
-          )}
-        </div>
+          );
+        })}
       </div>
+
+      {/* Tab description */}
+      <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 16, color: "var(--ink-soft)", margin: "0 0 24px", lineHeight: 1.6 }}>
+        {TABS.find((t) => t.id === activeTab)?.description}
+      </p>
 
       {error && <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 15, color: "#dc2626", marginBottom: 16 }}>{error}</p>}
       {loading && <AILoadingMessage messages={SPECIALIST_MESSAGES} />}
 
-      {showShortlistOnly && displayedSpecialists.length === 0 && (
-        <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 16, color: "var(--ink-faded)" }}>
-          No saved specialists yet. Click the bookmark on any card to add one.
-        </p>
-      )}
-
-      {/* Featured specialist */}
-      {!loading && featured && (
-        <div style={{ marginBottom: 44 }}>
-          <FeaturedCard
-            specialist={featured}
-            isSaved={savedEmails.has(featured.email)}
-            onToggleSave={() => toggleSave(featured)}
-          />
-        </div>
-      )}
-
-      {loading && <SkeletonFeatured />}
-
-      {/* Secondary specialists */}
-      {!loading && others.length > 0 && (
-        <div>
-          <Overline style={{ display: "block", marginBottom: 14 }}>
-            {others.length === 1 ? "one more worth knowing" : `${others.length} others worth knowing`}
-          </Overline>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-            {others.map((s, i) => (
-              <SecondaryCard
-                key={i}
-                specialist={s}
-                isSaved={savedEmails.has(s.email)}
-                onToggleSave={() => toggleSave(s)}
-                index={i + 1}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {loading && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, marginTop: 16 }}>
+      {/* Cards grid */}
+      {loading ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
           {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      ) : tabSpecialists.length === 0 ? (
+        <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 16, color: "var(--ink-faded)" }}>
+          No {TABS.find((t) => t.id === activeTab)?.label.toLowerCase()} found for your profile yet.
+        </p>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+          {tabSpecialists.map((s, i) => (
+            <SpecialistCard
+              key={i}
+              specialist={s}
+              isSaved={savedEmails.has(s.email)}
+              onToggleSave={() => toggleSave(s)}
+              color={PORTRAIT_COLORS[activeTab][i % PORTRAIT_COLORS[activeTab].length]}
+            />
+          ))}
         </div>
       )}
     </div>
