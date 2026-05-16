@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ConditionSelector from "../components/ConditionSelector";
+import LocationAutocomplete from "../components/LocationAutocomplete";
 import { usePoppyContext } from "../components/PoppyProvider";
 
 type Screen = 1 | 2 | 3 | 4 | "analyzing" | "confirm" | "conditions" | "role" | "location" | 5;
@@ -741,23 +742,18 @@ export default function OnboardingPage() {
                     {locating ? "Detecting location…" : "Use my current location"}
                   </button>
 
-                  {/* Manual text input */}
+                  {/* Location input with autocomplete */}
                   <div>
                     <label className="block text-sm font-medium mb-2" style={{ color: "var(--primary)" }}>
                       Or type your city or region
                     </label>
-                    <input
-                      type="text"
+                    <LocationAutocomplete
                       value={locationText}
-                      onChange={(e) => setLocationText(e.target.value)}
+                      onChange={setLocationText}
                       placeholder="e.g. London, New York, Sydney"
                       autoFocus={!locating}
-                      className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                      style={{
-                        background: "var(--soft)",
-                        color: "var(--foreground)",
-                        border: "1px solid transparent",
-                      }}
+                      inputClassName="px-4 py-3 rounded-xl text-sm outline-none"
+                      inputStyle={{ background: "var(--soft)", color: "var(--foreground)", border: "1px solid transparent" }}
                     />
                   </div>
 

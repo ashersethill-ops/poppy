@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ConditionSelector from "../components/ConditionSelector";
+import LocationAutocomplete from "../components/LocationAutocomplete";
 import { usePoppyContext } from "../components/PoppyProvider";
 import { createClient } from "@/lib/supabase/client";
 
@@ -225,29 +226,15 @@ export default function ProfilePage() {
             <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--primary)" }}>
               Location
             </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 text-sm outline-none focus:border-stone-400 transition-colors"
-                style={{ background: "var(--background)", color: "var(--foreground)" }}
-                placeholder="e.g. London, Manchester, New York"
-              />
-              <button
-                type="button"
-                onClick={handleGetLocation}
-                disabled={locating}
-                title="Use my current location"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-opacity hover:opacity-80 disabled:opacity-50 whitespace-nowrap"
-                style={{ background: "var(--soft)", color: "var(--primary)", border: "1px solid #d4c4b0" }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                </svg>
-                {locating ? "Locating…" : "Detect"}
-              </button>
-            </div>
+            <LocationAutocomplete
+              value={location}
+              onChange={setLocation}
+              onDetect={handleGetLocation}
+              detecting={locating}
+              placeholder="e.g. London, Manchester, New York"
+              inputClassName="px-4 py-2.5 rounded-xl border border-stone-200 text-sm outline-none focus:border-stone-400 transition-colors"
+              inputStyle={{ background: "var(--background)", color: "var(--foreground)" }}
+            />
             <p className="text-xs text-stone-400 mt-1">Used to find specialists and support groups near you</p>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { usePoppyContext } from "../components/PoppyProvider";
 import AILoadingMessage from "../components/AILoadingMessage";
 import UpdateButton from "../components/UpdateButton";
 import GeneralContentBanner from "../components/GeneralContentBanner";
+import LocationAutocomplete from "../components/LocationAutocomplete";
 
 const COMMUNITY_MESSAGES = [
   "Searching patient communities for your conditions…",
@@ -724,12 +725,12 @@ export default function CommunityPage() {
                 Enter your city or region to find local patient support groups, charity branches, and helplines close to you.
               </p>
               <form onSubmit={handleSetLocation} style={{ display: "flex", gap: 10 }}>
-                <input
-                  type="text"
+                <LocationAutocomplete
                   value={locationInput}
-                  onChange={(e) => setLocationInput(e.target.value)}
+                  onChange={setLocationInput}
                   placeholder="e.g. London, Manchester, New York"
-                  style={{ flex: 1, padding: "12px 16px", borderRadius: 14, fontSize: 15, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", outline: "none", background: "var(--soft)", color: "var(--ink)", border: "1px solid var(--rule)" }}
+                  style={{ flex: 1 }}
+                  inputStyle={{ width: "100%", padding: "12px 16px", borderRadius: 14, fontSize: 15, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", outline: "none", background: "var(--soft)", color: "var(--ink)", border: "1px solid var(--rule)" }}
                 />
                 <button type="submit" disabled={!locationInput.trim()} style={{ padding: "12px 20px", borderRadius: 999, fontSize: 15, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", background: "var(--ink)", color: "var(--paper)", border: "none", cursor: "pointer", opacity: !locationInput.trim() ? 0.45 : 1 }}>
                   find groups
