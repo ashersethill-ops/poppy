@@ -59,38 +59,19 @@ export async function PATCH(req: NextRequest) {
   }
 
   // PROFILE WRITE — triggered by: explicit client PATCH /api/profile call.
-  // Strategy: try UPDATE first (surgical — only touches columns in `updates`).
-  // If no row exists yet (PGRST116, new user before signup trigger fires),
-  // fall back to INSERT so the profile is created rather than silently dropped.
-  const { data, error } = await supabase
+  // Use admin client + upsert so this works for both new users (no row yet) and
+  // existing users, without hitting RLS restrictions on INSERT.
+  const adminClient = createAdminClient();
+  const { data, error } = await adminClient
     .from("profiles")
-    .update(updates)
-    .eq("id", user.id)
+    .upsert({ id: user.id, ...updates }, { onConflict: "id" })
     .select()
     .single();
 
-  if (!error) {
-    return NextResponse.json({ profile: data });
+  if (error) {
+    console.error("[api/profile] upsert failed:", error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // PGRST116 = "The result contains 0 rows" — profile row doesn't exist yet.
-  // Use the admin client (service role) so RLS doesn't block the INSERT for new users.
-  if (error.code === "PGRST116") {
-    const adminClient = createAdminClient();
-    const { data: inserted, error: insertError } = await adminClient
-      .from("profiles")
-      .insert({ id: user.id, ...updates })
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error("[api/profile] insert fallback failed:", insertError.message);
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
-    }
-    console.log("[api/profile] Created new profile row for user:", user.id);
-    return NextResponse.json({ profile: inserted });
-  }
-
-  console.error("[api/profile] update failed:", error.message);
-  return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ profile: data });
 }
