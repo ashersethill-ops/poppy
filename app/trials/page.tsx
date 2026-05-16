@@ -82,9 +82,9 @@ const Tag = ({ children, color }: { children: React.ReactNode; color?: string })
 // ── Match strength helpers ─────────────────────────────────────────────────────
 
 const matchConfig = {
-  eligible:        { color: "var(--sage)",   label: "● strong match", icon: "✓" },
-  likely_eligible: { color: "var(--gold)",   label: "◐ likely match", icon: "~" },
-  not_eligible:    { color: "var(--ink-faded)", label: "○ no match",  icon: "✕" },
+  eligible:        { color: "#16a34a", label: "● strong match" },
+  likely_eligible: { color: "#ea580c", label: "◐ likely match" },
+  not_eligible:    { color: "#dc2626", label: "○ not eligible"  },
 };
 
 const statusColor: Record<string, string> = {
@@ -148,6 +148,7 @@ function FeaturedTrial({ trial }: { trial: Trial }) {
     <GardenPaper style={{
       padding: 36, display: "flex", flexDirection: "column", gap: 18,
       boxShadow: "0 16px 36px -22px rgba(36,26,20,0.16)",
+      borderLeft: `4px solid ${match.color}`,
     }}>
       {/* Tags */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -263,7 +264,7 @@ function SecondaryTrial({ trial, color }: { trial: Trial; color: string }) {
     : `mailto:${trial.contact}?subject=${encodeURIComponent(`Expression of Interest: ${trial.title}`)}&body=${encodeURIComponent(`Dear Trial Coordinator,\n\nI would like to express my interest in participating in the "${trial.title}" trial.\n\nPlease let me know the next steps.\n\nThank you.`)}`;
 
   return (
-    <GardenPaper style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+    <GardenPaper style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12, borderLeft: `4px solid ${match.color}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <Tag color={match.color}>{match.label}</Tag>
         <Overline>{trial.phase} · {trial.status.toLowerCase()}</Overline>
