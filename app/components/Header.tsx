@@ -66,19 +66,24 @@ export default function Header({
 }: Props) {
   const pathname = usePathname();
   const router = useRouter();
-  const { conditions, setForceOnboarding } = usePoppyContext();
+  const { conditions, setForceOnboarding, isCustodian: ctxIsCustodian } = usePoppyContext();
 
-  // Dashboard has its own full-screen layout — no top header needed
-  if (pathname === "/dashboard") return null;
+  // These pages have their own full-screen layouts — no top header needed
+  if (["/dashboard", "/about", "/", "/signup", "/login"].includes(pathname)) return null;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Use context value (client-side, fresh from /api/profile) when available,
+  // falling back to SSR prop. This ensures the role badge is correct even when
+  // the SSR prop is stale (e.g. is_custodian not returned by layout.tsx).
+  const effectiveIsCustodian = ctxIsCustodian || isCustodian;
+
   // Build list of roles this user has
   const availableRoles: Role[] = [];
-  if (isPatient || (!isDoctor && !isCustodian)) availableRoles.push("patient");
+  if (isPatient || (!isDoctor && !effectiveIsCustodian)) availableRoles.push("patient");
   if (isDoctor) availableRoles.push("doctor");
-  if (isCustodian) availableRoles.push("custodian");
+  if (effectiveIsCustodian) availableRoles.push("custodian");
 
   const defaultRole = availableRoles[0] ?? "patient";
   const [activeRole, setActiveRole] = useState<Role>(defaultRole);
@@ -91,6 +96,19 @@ export default function Header({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // When context loads with isCustodian=true (overriding stale SSR prop),
+  // update activeRole to custodian unless the user manually picked a different role.
+  useEffect(() => {
+    if (ctxIsCustodian) {
+      const saved = localStorage.getItem("poppy_active_role") as Role | null;
+      if (!saved || saved === "patient") {
+        setActiveRole("custodian");
+        localStorage.setItem("poppy_active_role", "custodian");
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctxIsCustodian]);
 
   function switchRole(role: Role) {
     setActiveRole(role);

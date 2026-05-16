@@ -1,11 +1,24 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&display=swap");
 
 :root {
-  --background: #fdf8f4;
-  --foreground: #2d2d2d;
+  --background: #FBF6EE;
+  --foreground: #241A14;
   --primary: #7c6f5e;
   --accent: #c4956a;
-  --soft: #f0e8df;
+  --soft: #F4ECDF;
+
+  /* Garden palette */
+  --poppy:      #D9542B;
+  --poppy-deep: #A03A1C;
+  --ink:        #241A14;
+  --ink-soft:   #5B4A3B;
+  --ink-faded:  #937A62;
+  --paper:      #FFFCF7;
+  --bg-warm:    #E9DCC8;
+  --rule:       rgba(91,74,59,0.18);
+  --sage:       #7C8E6B;
+  --gold:       #B07E2C;
 }
 
 body {

@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import PoppyIcon from "./PoppyIcon";
 import { usePoppyContext } from "./PoppyProvider";
 
+const PUBLIC_ROUTES = new Set(["/", "/about", "/login", "/signup", "/terms", "/onboarding"]);
+
 export default function PoppyDrawer() {
+  const pathname = usePathname();
   const { conditions, documents, pageContext, patientOverride, messages, setMessages, isOpen, setIsOpen } = usePoppyContext();
+
+  // Never show on public / logged-out pages
+  if (PUBLIC_ROUTES.has(pathname)) return null;
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -65,108 +72,125 @@ export default function PoppyDrawer() {
     }
   }
 
+  const docCount = patientOverride ? patientOverride.documentIds.length : documents.length;
+
   return (
     <>
       {/* Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/20"
+          className="fixed inset-0 z-40"
+          style={{ background: "rgba(36,26,20,0.28)", backdropFilter: "blur(1px)" }}
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* Floating trigger button */}
+      {/* Floating trigger button — Garden style */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95"
-          style={{ background: "var(--accent)" }}
-          aria-label="Open Poppy chat"
+          className="fixed bottom-7 right-7 z-50 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+          style={{
+            width: 60, height: 60, borderRadius: "50%",
+            background: "var(--background)", border: "1px solid var(--rule)",
+            boxShadow: "0 14px 28px -10px rgba(36,26,20,0.28), 0 0 0 1px rgba(217,84,43,0.10)",
+            cursor: "pointer", padding: 0,
+          }}
+          aria-label="Ask Poppy"
         >
-          <span
-            className="absolute inset-0 rounded-full animate-ping opacity-30"
-            style={{ background: "var(--accent)" }}
-          />
-          <PoppyIcon size={28} />
+          {/* Pulsing ring */}
+          <span style={{
+            position: "absolute", inset: -6, borderRadius: "50%",
+            border: "1.5px solid var(--poppy)", opacity: 0.28, pointerEvents: "none",
+          }} />
+          <PoppyIcon size={34} />
         </button>
       )}
 
       {/* Drawer */}
       <div
-        className="fixed top-0 right-0 h-full w-[380px] z-50 flex flex-col shadow-2xl transition-transform duration-300"
+        className="fixed top-0 right-0 h-full z-50 flex flex-col transition-transform duration-300"
         style={{
+          width: "380px",
           background: "var(--background)",
-          borderLeft: "1px solid var(--soft)",
+          borderLeft: "1px solid var(--rule)",
+          boxShadow: isOpen ? "-14px 0 38px -8px rgba(36,26,20,0.20)" : "none",
           transform: isOpen ? "translateX(0)" : "translateX(100%)",
         }}
       >
         {/* Header */}
         <div
-          className="flex items-center gap-3 px-4 py-4"
-          style={{ borderBottom: "1px solid var(--soft)" }}
+          className="flex items-center gap-3 px-5 py-4"
+          style={{ borderBottom: "1px solid var(--rule)" }}
         >
           <PoppyIcon size={28} />
-          <span className="font-semibold text-lg flex-1" style={{ color: "var(--primary)" }}>
-            Ask Poppy
-          </span>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontSize: 20, color: "var(--ink)" }}>
+              ask poppy
+            </span>
+            <div style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 9.5, color: "var(--ink-faded)", letterSpacing: "0.14em", textTransform: "uppercase", marginTop: 1 }}>
+              {docCount > 0 ? `reading · ${docCount} document${docCount !== 1 ? "s" : ""}` : "no documents yet"}
+            </div>
+          </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-70"
-            style={{ color: "var(--primary)" }}
+            className="w-7 h-7 rounded-full flex items-center justify-center transition-opacity hover:opacity-60"
+            style={{ color: "var(--ink-soft)", background: "transparent", border: "none" }}
             aria-label="Close"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M6 6L18 18M18 6L6 18" />
             </svg>
           </button>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
+        <div className="flex-1 overflow-y-auto flex flex-col gap-4" style={{ padding: "20px 22px" }}>
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center gap-3 opacity-60">
-              <PoppyIcon size={40} />
-              <p className="text-sm" style={{ color: "var(--primary)" }}>
+            <div style={{ alignSelf: "flex-start", display: "flex", gap: 10, maxWidth: "95%" }}>
+              <PoppyIcon size={22} />
+              <div style={{
+                background: "var(--soft)", padding: "12px 16px",
+                borderRadius: "4px 16px 16px 16px",
+                fontFamily: "'Newsreader', 'Lora', Georgia, serif",
+                fontStyle: "italic", fontSize: 14.5, lineHeight: 1.55,
+                color: "var(--ink)",
+              }}>
                 {patientOverride
-                  ? `I'm reviewing ${patientOverride.patientName}'s medical record with you. I have access to their ${patientOverride.documentIds.length} document${patientOverride.documentIds.length !== 1 ? "s" : ""}. Ask me anything about this patient.`
-                  : documents.length > 0
-                    ? `Hi! I'm Poppy. I've read your ${documents.length} document${documents.length > 1 ? "s" : ""} and know your full medical context. Ask me anything.`
-                    : "Hi! I'm Poppy. Ask me anything about your conditions or how to use the app."
+                  ? `I'm reviewing ${patientOverride.patientName}'s records with you. I have access to ${patientOverride.documentIds.length} document${patientOverride.documentIds.length !== 1 ? "s" : ""}. Ask me anything about this patient.`
+                  : docCount > 0
+                    ? `I've read all ${docCount} of your documents. Ask me anything — even the question you haven't been able to say out loud.`
+                    : "Ask me anything about your conditions or how to navigate your care journey."
                 }
-              </p>
+              </div>
             </div>
           )}
 
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              style={{ alignSelf: msg.role === "user" ? "flex-end" : "flex-start", display: "flex", gap: 10, maxWidth: "90%" }}
             >
-              <div
-                className="max-w-[280px] px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
-                style={
-                  msg.role === "user"
-                    ? { background: "var(--accent)", color: "#fff" }
-                    : { background: "var(--soft)", color: "var(--foreground)" }
-                }
-              >
+              {msg.role === "assistant" && <PoppyIcon size={22} />}
+              <div style={{
+                padding: "12px 16px",
+                borderRadius: msg.role === "user" ? "16px 16px 4px 16px" : "4px 16px 16px 16px",
+                fontFamily: "'Newsreader', 'Lora', Georgia, serif",
+                fontSize: 14.5, lineHeight: 1.6, color: "var(--ink)",
+                background: msg.role === "user" ? "var(--bg-warm)" : "var(--paper)",
+                border: msg.role === "assistant" ? "1px solid var(--rule)" : "none",
+              }}>
                 {msg.content}
               </div>
             </div>
           ))}
 
           {loading && (
-            <div className="flex justify-start">
-              <div
-                className="px-4 py-3 rounded-2xl flex gap-1 items-center"
-                style={{ background: "var(--soft)" }}
-              >
+            <div style={{ alignSelf: "flex-start", display: "flex", gap: 10 }}>
+              <PoppyIcon size={22} />
+              <div style={{ background: "var(--soft)", padding: "14px 18px", borderRadius: "4px 16px 16px 16px", display: "flex", gap: 5, alignItems: "center" }}>
                 {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="w-1.5 h-1.5 rounded-full animate-bounce"
-                    style={{ background: "var(--accent)", animationDelay: `${i * 0.15}s` }}
-                  />
+                  <span key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "var(--poppy)", display: "inline-block", width: 6, height: 6, animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
             </div>
@@ -175,33 +199,40 @@ export default function PoppyDrawer() {
           <div ref={bottomRef} />
         </div>
 
-        {/* Input */}
-        <div
-          className="px-4 py-4 flex gap-2"
-          style={{ borderTop: "1px solid var(--soft)" }}
-        >
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask Poppy anything…"
-            disabled={loading}
-            className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none disabled:opacity-50"
-            style={{
-              background: "var(--soft)",
-              color: "var(--foreground)",
-              border: "1px solid transparent",
-            }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() || loading}
-            className="px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-opacity disabled:opacity-40"
-            style={{ background: "var(--accent)" }}
-          >
-            Send
-          </button>
+        {/* Composer */}
+        <div style={{ padding: "14px 18px 18px", borderTop: "1px solid var(--rule)", background: "var(--soft)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 14, background: "var(--paper)", border: "1px solid var(--rule)" }}>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="ask poppy anything…"
+              disabled={loading}
+              style={{
+                flex: 1, background: "transparent", border: "none", outline: "none",
+                fontFamily: "'Newsreader', 'Lora', Georgia, serif",
+                fontStyle: "italic", fontSize: 14.5, color: "var(--ink)",
+              }}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!input.trim() || loading}
+              style={{
+                width: 30, height: 30, borderRadius: 999,
+                background: "var(--poppy)", color: "white", border: "none",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", opacity: (!input.trim() || loading) ? 0.4 : 1,
+                fontFamily: "'Newsreader', 'Lora', Georgia, serif",
+                fontStyle: "italic", fontSize: 16,
+              }}
+            >
+              ↵
+            </button>
+          </div>
+          <div style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 9.5, color: "var(--ink-faded)", letterSpacing: "0.14em", textTransform: "uppercase", marginTop: 8, textAlign: "center" }}>
+            poppy reads your documents · she does not replace your doctor
+          </div>
         </div>
       </div>
     </>

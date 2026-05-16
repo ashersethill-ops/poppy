@@ -100,11 +100,13 @@ export default function PoppyProvider({ children }: { children: React.ReactNode 
   const [isCustodian, setIsCustodian] = useState(false);
   const [patientName, setPatientName] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
     fetch("/api/profile")
       .then((r) => r.json())
       .then(({ profile }) => {
+        if (profile) setLoggedIn(true);
         setConditions(profile?.conditions ?? []);
         setOnboardingCompleted(profile?.onboarding_completed ?? false);
         if (profile?.credits !== undefined) setCredits(profile.credits);
@@ -188,7 +190,7 @@ export default function PoppyProvider({ children }: { children: React.ReactNode 
       setUserName,
     }}>
       {children}
-      <PoppyDrawer />
+      {loggedIn && <PoppyDrawer />}
     </PoppyContext.Provider>
   );
 }

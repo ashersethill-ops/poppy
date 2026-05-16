@@ -7,6 +7,30 @@ import { createClient } from "@/lib/supabase/client";
 import OnboardingModal from "../components/OnboardingModal";
 import { usePoppyContext } from "../components/PoppyProvider";
 
+// ── Poppy Flower SVG ─────────────────────────────────────────────────────────
+
+function PoppyFlowerSVG({ size = 32 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <ellipse cx="32" cy="18" rx="9" ry="16" fill="#E07850" opacity="0.92" />
+      <ellipse cx="32" cy="46" rx="9" ry="16" fill="#E07850" opacity="0.92" />
+      <ellipse cx="18" cy="32" rx="16" ry="9" fill="#C95E35" opacity="0.85" />
+      <ellipse cx="46" cy="32" rx="16" ry="9" fill="#C95E35" opacity="0.85" />
+      <ellipse cx="21" cy="21" rx="9" ry="15" fill="#D96840" opacity="0.75" transform="rotate(-45 21 21)" />
+      <ellipse cx="43" cy="21" rx="9" ry="15" fill="#D96840" opacity="0.75" transform="rotate(45 43 21)" />
+      <ellipse cx="21" cy="43" rx="9" ry="15" fill="#D96840" opacity="0.75" transform="rotate(45 21 43)" />
+      <ellipse cx="43" cy="43" rx="9" ry="15" fill="#D96840" opacity="0.75" transform="rotate(-45 43 43)" />
+      <circle cx="32" cy="32" r="9" fill="#2C1810" />
+      <circle cx="29" cy="29" r="1.2" fill="#5C3820" />
+      <circle cx="32" cy="28" r="1.2" fill="#5C3820" />
+      <circle cx="35" cy="29" r="1.2" fill="#5C3820" />
+      <circle cx="30" cy="32" r="1.2" fill="#5C3820" />
+      <circle cx="34" cy="32" r="1.2" fill="#5C3820" />
+      <circle cx="32" cy="35" r="1.2" fill="#5C3820" />
+    </svg>
+  );
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getGreeting(): string {
@@ -150,48 +174,6 @@ const NAV_ITEMS = [
   },
 ];
 
-// ── Resource card icons ───────────────────────────────────────────────────────
-
-const MedicalIcon = () => (
-  <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-  </svg>
-);
-
-const CommunityIcon = () => (
-  <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-  </svg>
-);
-
-const ResearchIcon = () => (
-  <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-  </svg>
-);
-
-const TrialsIcon = () => (
-  <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-  </svg>
-);
-
-const SpecialistsIcon = () => (
-  <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="8" r="4" />
-    <path d="M6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
-    <path d="M16 3.13a4 4 0 010 7.75" />
-  </svg>
-);
-
-const KnowledgeIcon = () => (
-  <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="2" x2="12" y2="6" />
-    <path d="M5 12H2M22 12h-3M7.05 7.05l-2.12-2.12M19.07 4.93l-2.12 2.12" />
-    <path d="M12 17a5 5 0 100-10 5 5 0 000 10z" />
-    <path d="M9 21h6M10 17v4M14 17v4" />
-  </svg>
-);
 
 // ── Nav Drawer ────────────────────────────────────────────────────────────────
 
@@ -201,43 +183,49 @@ function NavDrawer({ isOpen, onClose, pathname }: { isOpen: boolean; onClose: ()
       {/* Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/15"
+          className="fixed inset-0 z-40"
+          style={{ background: "rgba(36,26,20,0.30)", backdropFilter: "blur(1px)" }}
           onClick={onClose}
-          style={{ backdropFilter: "blur(1px)" }}
         />
       )}
 
       {/* Drawer panel */}
       <div
-        className="fixed top-0 left-0 h-full z-50 flex flex-col py-6 overflow-y-auto"
+        className="fixed top-0 left-0 h-full z-50 flex flex-col overflow-y-auto"
         style={{
-          width: "232px",
-          background: "var(--background)",
-          borderRight: "1px solid var(--soft)",
-          boxShadow: isOpen ? "4px 0 24px rgba(0,0,0,0.08)" : "none",
+          width: "268px",
+          background: "var(--soft)",
+          borderRight: "1px solid var(--rule)",
+          boxShadow: isOpen ? "12px 0 36px -8px rgba(36,26,20,0.18)" : "none",
           transform: isOpen ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+          transition: "transform 0.32s cubic-bezier(0.4, 0, 0.2, 1)",
+          padding: "22px 20px",
+          gap: 4,
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         {/* Wordmark + close */}
-        <div className="flex items-center justify-between px-5 mb-6">
-          <span className="text-base font-semibold tracking-tight" style={{ color: "var(--primary)" }}>
-            poppy
-          </span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <PoppyFlowerSVG size={22} />
+            <span style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontWeight: 500, fontSize: 20, color: "var(--ink)", letterSpacing: "-0.01em" }}>poppy</span>
+          </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full flex items-center justify-center transition-opacity hover:opacity-60"
-            style={{ color: "var(--primary)", opacity: 0.4 }}
+            style={{ width: 28, height: 28, borderRadius: 999, border: "none", background: "transparent", color: "var(--ink-soft)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
             aria-label="Close menu"
           >
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6L18 18M18 6L6 18" /></svg>
           </button>
         </div>
 
+        <div style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: "var(--ink-faded)", padding: "0 4px 8px" }}>
+          navigation
+        </div>
+
         {/* Nav links */}
-        <div className="flex flex-col gap-0.5 px-3 flex-1">
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.href;
             return (
@@ -245,14 +233,18 @@ function NavDrawer({ isOpen, onClose, pathname }: { isOpen: boolean; onClose: ()
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
-                style={
-                  active
-                    ? { background: "var(--soft)", color: "var(--primary)" }
-                    : { color: "var(--primary)", opacity: 0.5 }
-                }
+                style={{
+                  fontFamily: "'Newsreader', 'Lora', Georgia, serif",
+                  fontSize: 15, padding: "10px 14px", borderRadius: 10,
+                  color: active ? "var(--ink)" : "var(--ink-soft)",
+                  background: active ? "var(--background)" : "transparent",
+                  textDecoration: "none",
+                  fontStyle: active ? "italic" : "normal",
+                  border: active ? "1px solid var(--rule)" : "1px solid transparent",
+                  display: "flex", alignItems: "center", gap: 12,
+                }}
               >
-                {item.icon}
+                <span style={{ opacity: 0.7 }}>{item.icon}</span>
                 {item.label}
               </Link>
             );
@@ -266,85 +258,85 @@ function NavDrawer({ isOpen, onClose, pathname }: { isOpen: boolean; onClose: ()
 // ── OrbitalCard ───────────────────────────────────────────────────────────────
 
 function OrbitalCard({
-  left, top, href, bg, iconColor, label, description, status, loading, icon,
+  left, top, href, accent, label, status, loading,
 }: {
   left: string; top: string;
-  href: string; bg: string; iconColor: string;
-  label: string; description: string; status: string;
-  loading?: boolean; icon: React.ReactNode;
+  href: string; accent: string;
+  label: string; status: string;
+  loading?: boolean;
 }) {
   return (
-    <div
+    <Link
+      href={href}
       style={{
-        position: "absolute",
-        left,
-        top,
+        position: "absolute", left, top,
         transform: "translate(-50%, -50%)",
+        width: "168px", padding: "14px 18px",
+        background: "var(--paper)",
+        borderRadius: 16,
+        border: "1px solid var(--rule)",
+        boxShadow: "0 6px 20px -10px rgba(36,26,20,0.18)",
+        textDecoration: "none", display: "flex", flexDirection: "column", gap: 7,
         zIndex: 10,
-        width: "152px",
+        transition: "transform 0.22s ease, box-shadow 0.22s ease",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.transform = "translate(-50%, -52%)";
+        (e.currentTarget as HTMLElement).style.boxShadow = "0 14px 30px -10px rgba(36,26,20,0.24)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.transform = "translate(-50%, -50%)";
+        (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 20px -10px rgba(36,26,20,0.18)";
       }}
     >
-      <Link
-        href={href}
-        className="flex flex-col gap-2.5 rounded-2xl p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-md"
-        style={{
-          background: bg,
-          border: "1px solid rgba(0,0,0,0.06)",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          textDecoration: "none",
-        }}
-      >
-        <div
-          className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: "rgba(255,255,255,0.65)", color: iconColor }}
-        >
-          {icon}
-        </div>
-        <div>
-          <p className="text-sm font-semibold leading-tight" style={{ color: "var(--primary)" }}>{label}</p>
-          <p className="text-xs leading-snug mt-0.5" style={{ color: "var(--primary)", opacity: 0.5 }}>{description}</p>
-        </div>
-        {loading ? (
-          <div className="h-4 w-20 rounded-full animate-pulse" style={{ background: "rgba(0,0,0,0.07)" }} />
-        ) : (
-          <span
-            className="text-xs font-medium px-2 py-0.5 rounded-full self-start leading-tight"
-            style={{ background: "rgba(255,255,255,0.75)", color: iconColor }}
-          >
-            {status}
-          </span>
-        )}
-      </Link>
-    </div>
+      {/* Accent dot */}
+      <div style={{
+        width: 22, height: 22, borderRadius: 999,
+        background: `${accent}22`, border: `1px solid ${accent}55`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <div style={{ width: 7, height: 7, borderRadius: 999, background: accent }} />
+      </div>
+      {/* Label */}
+      <span style={{
+        fontFamily: "'Newsreader', 'Lora', Georgia, serif",
+        fontStyle: "italic", fontSize: 17, fontWeight: 400,
+        color: "var(--ink)", lineHeight: 1.15,
+      }}>{label}</span>
+      {/* Status */}
+      {loading ? (
+        <div style={{ height: 12, width: 80, borderRadius: 6, background: "rgba(0,0,0,0.08)", animation: "pulse 1.5s infinite" }} />
+      ) : (
+        <span style={{
+          fontFamily: "'Geist Mono', ui-monospace, monospace",
+          fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" as const,
+          color: accent,
+        }}>{status}</span>
+      )}
+    </Link>
   );
 }
 
 // ── MobileCard ────────────────────────────────────────────────────────────────
 
-function MobileCard({ href, bg, iconColor, label, description, status, icon }: {
-  href: string; bg: string; iconColor: string;
-  label: string; description: string; status: string; icon: React.ReactNode;
+function MobileCard({ href, accent, label, status }: {
+  href: string; accent: string; label: string; status: string;
 }) {
   return (
     <Link
       href={href}
-      className="flex flex-col gap-2 rounded-2xl p-4 transition-all hover:-translate-y-0.5"
       style={{
-        background: bg,
-        border: "1px solid rgba(0,0,0,0.06)",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
-        textDecoration: "none",
+        background: "var(--paper)", border: "1px solid var(--rule)",
+        borderRadius: 16, padding: "14px 16px",
+        boxShadow: "0 4px 14px -8px rgba(36,26,20,0.14)",
+        textDecoration: "none", display: "flex", flexDirection: "column", gap: 8,
       }}
     >
-      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(255,255,255,0.65)", color: iconColor }}>
-        {icon}
+      <div style={{ width: 20, height: 20, borderRadius: 999, background: `${accent}22`, border: `1px solid ${accent}55`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 6, height: 6, borderRadius: 999, background: accent }} />
       </div>
-      <p className="text-sm font-semibold leading-tight" style={{ color: "var(--primary)" }}>{label}</p>
-      <p className="text-xs" style={{ color: "var(--primary)", opacity: 0.5 }}>{description}</p>
-      <span className="text-xs font-medium px-2 py-0.5 rounded-full self-start" style={{ background: "rgba(255,255,255,0.75)", color: iconColor }}>{status}</span>
+      <span style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontSize: 16, color: "var(--ink)" }}>{label}</span>
+      <span style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: accent }}>{status}</span>
     </Link>
   );
 }
@@ -426,14 +418,39 @@ export default function DashboardPage() {
   const circleInitials  = displayName ? getInitials(displayName) : "?";
   const circleFirstName = displayName ?? (isCustodian ? "Patient" : "You");
 
-  // Story orbital card label
-  const storyLabel = displayName ? `${displayName}'s Story` : "My Story";
-
   // Status badge text
   const trialsStatus      = trialsLoading      ? null : !hasConditions ? "Add conditions" : (trials?.length ?? 0) > 0 ? `${trials!.length} eligible` : "None found";
   const communityStatus   = postsLoading       ? null : !hasConditions ? "Add conditions" : (posts?.length ?? 0) > 0 ? `${posts!.length} discussions` : "Explore";
   const specialistsStatus = specialistsLoading ? null : !hasConditions ? "Add conditions" : (() => { const acc = specialists?.filter((s) => s.acceptingPatients).length ?? 0; return acc > 0 ? `${acc} accepting` : `${specialists?.length ?? 0} found`; })();
   const doctorsStatus     = doctorsLoading     ? null : (doctors?.length ?? 0) > 0 ? `${doctors!.length} connected` : "Not connected";
+
+  // Orbital config: [label, accent, href, status, loading?]
+  const orbits: { label: string; accent: string; href: string; status: string; loading?: boolean }[] = [
+    { label: "Medical Team",      accent: "#7C8E6B", href: "/my-doctors", status: doctorsStatus     ?? "", loading: doctorsLoading },
+    { label: "Specialists",       accent: "#E89A8B", href: "/specialist", status: specialistsStatus ?? "", loading: specialistsLoading },
+    { label: "Learn",             accent: "#B07E2C", href: "/learn",      status: hasConditions ? "personalised" : "add conditions" },
+    { label: "Community",         accent: "#D9542B", href: "/community",  status: communityStatus   ?? "", loading: postsLoading },
+    { label: "Documents",         accent: "#A03A1C", href: "/documents",  status: `${documents.length} uploaded` },
+    { label: "Clinical Trials",   accent: "#B07E2C", href: "/trials",     status: trialsStatus      ?? "", loading: trialsLoading },
+  ];
+
+  // Orbital positions matching the Garden design (% of container)
+  const positions = [
+    { left: "20%", top: "20%" },
+    { left: "80%", top: "20%" },
+    { left: "12%", top: "58%" },
+    { left: "88%", top: "58%" },
+    { left: "24%", top: "92%" },
+    { left: "76%", top: "92%" },
+  ];
+
+  // Center point (%) for bezier curve origins
+  const cx = 50, cy = 56;
+
+  const todayLabel = (() => {
+    const d = new Date();
+    return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }).toLowerCase();
+  })();
 
   return (
     <>
@@ -447,44 +464,50 @@ export default function DashboardPage() {
         className="flex flex-col"
         style={{ height: "100vh", background: "var(--background)" }}
       >
-
-        {/* ── Greeting bar ──────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 flex items-start gap-4 px-8 pt-7 pb-3">
-          {/* Hamburger button */}
+        {/* ── Slim header ───────────────────────────────────────────────── */}
+        <div
+          className="flex-shrink-0 flex items-center gap-4 px-7 py-4"
+          style={{ borderBottom: "1px solid var(--rule)" }}
+        >
+          {/* Hamburger */}
           <button
             onClick={() => setDrawerOpen(true)}
-            className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center mt-0.5 transition-opacity hover:opacity-70"
-            style={{ background: "var(--soft)", color: "var(--primary)" }}
+            className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-opacity hover:opacity-70"
+            style={{ background: "var(--paper)", border: "1px solid var(--rule)", color: "var(--ink)" }}
             aria-label="Open navigation"
           >
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round">
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8} strokeLinecap="round">
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="17" />
             </svg>
           </button>
 
-          <div>
-            <p
-              className="text-xs font-medium tracking-widest uppercase mb-1.5"
-              style={{ color: "var(--accent)", opacity: 0.65 }}
-            >
-              Where your care comes together
-            </p>
-            <h1
-              className="text-2xl font-semibold tracking-tight"
-              style={{ color: "var(--primary)" }}
-            >
-              {getGreeting()}{greetingName ? `, ${greetingName}` : ""}
-            </h1>
-            <p className="text-sm text-stone-400 mt-1">
-              {isCustodian
-                ? `${displayName ?? "Your patient"}'s health journey — you are at their side.`
-                : hasConditions
-                  ? "You are at the centre of your care."
-                  : "Add your conditions to personalise your hub."}
-            </p>
+          {/* Wordmark */}
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <PoppyFlowerSVG size={22} />
+            <span style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontWeight: 500, fontSize: 20, color: "var(--ink)", letterSpacing: "-0.01em" }}>poppy</span>
           </div>
+
+          {/* Centered greeting */}
+          <div className="flex-1 text-center" style={{ marginRight: 10 + 40 + 8 /* mirror left cluster */ }}>
+            <p style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10.5, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--poppy)", marginBottom: 2 }}>
+              {todayLabel}
+            </p>
+            <h1 style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontWeight: 400, fontSize: 22, color: "var(--ink)", margin: 0, letterSpacing: "-0.01em" }}>
+              {getGreeting().toLowerCase()}{greetingName ? `, ${greetingName}.` : "."}
+            </h1>
+          </div>
+
+          {/* Avatar */}
+          {greetingName && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--paper)", padding: "6px 14px 6px 8px", borderRadius: 999, border: "1px solid var(--rule)", flexShrink: 0 }}>
+              <div style={{ width: 26, height: 26, borderRadius: 999, background: "var(--poppy)", color: "#FBF6EE", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontSize: 13, fontStyle: "italic" }}>
+                {greetingName[0].toUpperCase()}
+              </div>
+              <span style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontSize: 13.5, color: "var(--ink-soft)" }}>{greetingName}</span>
+            </div>
+          )}
         </div>
 
         {/* ── Hub area ──────────────────────────────────────────────────── */}
@@ -494,77 +517,87 @@ export default function DashboardPage() {
           <div className="hidden md:flex h-full items-center justify-center px-8 py-2">
             <div
               className="relative w-full"
-              style={{ maxWidth: "820px", aspectRatio: "8 / 5" }}
+              style={{ maxWidth: "860px", aspectRatio: "8 / 5.2" }}
             >
-              {/* SVG connecting lines */}
+              {/* SVG connecting lines — dashed curved bezier paths */}
               <svg
-                viewBox="0 0 820 513"
+                viewBox="0 0 100 100"
                 preserveAspectRatio="none"
                 style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
               >
-                <line x1="410" y1="241" x2="123" y2="241" stroke="#d4c4b0" strokeWidth="0.5" />
-                <line x1="410" y1="241" x2="697" y2="241" stroke="#d4c4b0" strokeWidth="0.5" />
-                <line x1="410" y1="241" x2="180" y2="72"  stroke="#d4c4b0" strokeWidth="0.5" />
-                <line x1="410" y1="241" x2="640" y2="72"  stroke="#d4c4b0" strokeWidth="0.5" />
-                <line x1="410" y1="241" x2="180" y2="416" stroke="#d4c4b0" strokeWidth="0.5" />
-                <line x1="410" y1="241" x2="640" y2="416" stroke="#d4c4b0" strokeWidth="0.5" />
+                {positions.map((pos, i) => {
+                  const x2 = parseFloat(pos.left);
+                  const y2 = parseFloat(pos.top);
+                  const dx = x2 - cx, dy = y2 - cy;
+                  const qx = cx + dx * 0.55 + (i % 2 ? -3 : 3);
+                  const qy = cy + dy * 0.55 + (i % 2 ? 4 : -4);
+                  return (
+                    <path
+                      key={i}
+                      d={`M ${cx} ${cy} Q ${qx} ${qy} ${x2} ${y2}`}
+                      stroke="#D9542B" strokeWidth="0.18" fill="none"
+                      strokeDasharray="0.6 0.9" opacity="0.4"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  );
+                })}
               </svg>
 
               {/* Center circle */}
-              <div
+              <Link
+                href="/overview"
                 style={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "47%",
+                  position: "absolute", left: "50%", top: `${cy}%`,
                   transform: "translate(-50%, -50%)",
-                  width: "136px",
-                  height: "136px",
-                  borderRadius: "50%",
-                  background: "var(--primary)",
-                  boxShadow: "0 8px 32px rgba(124,111,94,0.28), 0 0 0 10px rgba(124,111,94,0.07)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  zIndex: 20,
-                  textAlign: "center",
-                  padding: "12px",
+                  width: "200px", height: "200px", borderRadius: "50%",
+                  background: "radial-gradient(circle at 30% 25%, #D9542B 0%, #A03A1C 70%)",
+                  color: "#FBF6EE", textDecoration: "none",
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+                  boxShadow: "0 22px 50px -18px rgba(160,58,28,0.55), 0 0 0 12px rgba(217,84,43,0.07), 0 0 0 28px rgba(217,84,43,0.04)",
+                  zIndex: 20, textAlign: "center", padding: 18, overflow: "hidden",
+                  transition: "transform 0.28s ease",
                 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = "translate(-50%, -50%) scale(1.04)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "translate(-50%, -50%) scale(1)"; }}
               >
-                <span style={{ color: "white", fontSize: "27px", fontWeight: 700, lineHeight: 1, letterSpacing: "-0.5px" }}>
-                  {circleInitials}
+                <span style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontSize: 13, color: "rgba(251,246,238,0.7)", letterSpacing: "0.02em" }}>
+                  {isCustodian ? "caring for" : "you are"}
                 </span>
-                <span style={{ color: "rgba(255,255,255,0.82)", fontSize: "11px", fontWeight: 500, marginTop: "5px" }}>
-                  {circleFirstName}
+                <span style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontSize: 46, color: "#FBF6EE", fontWeight: 400, lineHeight: 1, letterSpacing: "-0.01em", marginTop: 2 }}>
+                  {circleFirstName.toLowerCase()}.
                 </span>
-                <span style={{ color: "rgba(255,255,255,0.48)", fontSize: "9.5px", fontStyle: "italic", marginTop: "3px", lineHeight: 1.4, maxWidth: "108px" }}>
-                  {isCustodian ? "at the centre" : "you are the centre"}
+                <span style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontSize: 13, color: "rgba(251,246,238,0.65)", marginTop: 4 }}>
+                  at the centre.
                 </span>
-              </div>
+                <div style={{ marginTop: 12, padding: "4px 12px", borderRadius: 999, border: "1px solid rgba(251,246,238,0.35)", fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 9.5, color: "rgba(251,246,238,0.85)", letterSpacing: "0.14em", textTransform: "uppercase" }}>
+                  read your story ›
+                </div>
+              </Link>
 
               {/* 6 Orbital Cards */}
-              <OrbitalCard left="15%" top="47%" href="/my-doctors" bg="#f0fdf4" iconColor="#15803d" label="Medical Team"       description="Your care providers"        status={doctorsStatus ?? ""}     loading={doctorsLoading}     icon={<MedicalIcon />} />
-              <OrbitalCard left="85%" top="47%" href="/community"  bg="#fff7ed" iconColor="#ea580c" label="Community"          description="Real patient voices"        status={communityStatus ?? ""}   loading={postsLoading}       icon={<CommunityIcon />} />
-              <OrbitalCard left="22%" top="14%" href="/learn"      bg="#fdf4ff" iconColor="#7c3aed" label="Learn"              description="Condition education"        status={hasConditions ? "Personalised" : "Add conditions"}                          icon={<ResearchIcon />} />
-              <OrbitalCard left="78%" top="14%" href="/trials"     bg="#fffbeb" iconColor="#d97706" label="Clinical Trials"    description="Trials you may qualify for" status={trialsStatus ?? ""}      loading={trialsLoading}      icon={<TrialsIcon />} />
-              <OrbitalCard left="22%" top="81%" href="/specialist" bg="#fff1f2" iconColor="#e11d48" label="Expert Specialists" description="Matched to your profile"    status={specialistsStatus ?? ""} loading={specialistsLoading} icon={<SpecialistsIcon />} />
-              <OrbitalCard left="78%" top="81%" href="/overview"   bg="#fefce8" iconColor="#ca8a04" label={storyLabel}        description="Your health journey"        status="View story"                                                                 icon={<KnowledgeIcon />} />
+              {orbits.map((o, i) => (
+                <OrbitalCard
+                  key={i}
+                  left={positions[i].left}
+                  top={positions[i].top}
+                  href={o.href}
+                  accent={o.accent}
+                  label={o.label}
+                  status={o.status}
+                  loading={o.loading}
+                />
+              ))}
             </div>
           </div>
 
           {/* Mobile fallback grid */}
           <div className="md:hidden grid grid-cols-2 gap-3 p-5 overflow-y-auto">
-            <MobileCard href="/my-doctors" bg="#f0fdf4" iconColor="#15803d" label="Medical Team"       description="Your care providers"        status={doctorsStatus ?? "Loading…"}     icon={<MedicalIcon />} />
-            <MobileCard href="/community"  bg="#fff7ed" iconColor="#ea580c" label="Community"          description="Real patient voices"        status={communityStatus ?? "Loading…"}   icon={<CommunityIcon />} />
-            <MobileCard href="/learn"      bg="#fdf4ff" iconColor="#7c3aed" label="Learn"              description="Condition education"        status={hasConditions ? "Personalised" : "Add conditions"} icon={<ResearchIcon />} />
-            <MobileCard href="/trials"     bg="#fffbeb" iconColor="#d97706" label="Clinical Trials"    description="Trials you may qualify for" status={trialsStatus ?? "Loading…"}      icon={<TrialsIcon />} />
-            <MobileCard href="/specialist" bg="#fff1f2" iconColor="#e11d48" label="Expert Specialists" description="Matched to your profile"    status={specialistsStatus ?? "Loading…"} icon={<SpecialistsIcon />} />
-            <MobileCard href="/overview"   bg="#fefce8" iconColor="#ca8a04" label={storyLabel}        description="Your health journey"        status="View story"                      icon={<KnowledgeIcon />} />
+            {orbits.map((o, i) => (
+              <MobileCard key={i} href={o.href} accent={o.accent} label={o.label} status={o.status} />
+            ))}
           </div>
 
         </div>
-
-
       </div>
     </>
   );

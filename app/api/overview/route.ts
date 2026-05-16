@@ -23,12 +23,13 @@ export async function POST(req: NextRequest) {
 
   // ── Serve from cache if not forcing a refresh ──────────────────────────────
   if (!forceRefresh && user) {
-    const { data: cached } = await supabase
+    const { data: cached, error: cacheErr } = await supabase
       .from("ai_content_cache")
       .select("content, generated_at")
       .eq("user_id", user.id)
       .eq("content_type", CONTENT_TYPE)
       .maybeSingle();
+    if (cacheErr) console.error(`[${CONTENT_TYPE}] cache read error:`, cacheErr.message);
 
     if (cached) {
       return NextResponse.json({ ...cached.content, cachedAt: cached.generated_at });

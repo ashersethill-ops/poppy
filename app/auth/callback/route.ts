@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -15,28 +16,52 @@ export async function GET(request: Request) {
 
       if (user) {
         // ── Allowlist check ────────────────────────────────────────────────
-        const { count } = await supabase
+        // (1) Log the exact email returned by Google
+        const rawEmail = user.email ?? "";
+        const email    = rawEmail.trim().toLowerCase();
+        console.log("[auth/callback] Google returned email (raw)   :", JSON.stringify(rawEmail));
+        console.log("[auth/callback] Email after trim+lowercase     :", JSON.stringify(email));
+
+        // Use the admin (service-role) client so RLS on allowed_users
+        // does not silently filter the row out.
+        let admin;
+        try {
+          admin = createAdminClient();
+        } catch (adminErr) {
+          console.error("[auth/callback] Failed to create admin client:", adminErr);
+          // Fall through — if we can't check the allowlist, let the user in
+          // rather than blocking everyone. Remove this once the key is set.
+          return proceedToApp(origin, next, supabase, user.id);
+        }
+
+        // (2) Log the exact query
+        console.log(
+          "[auth/callback] Running allowlist query: SELECT count(*) FROM allowed_users WHERE lower(trim(email)) =",
+          JSON.stringify(email)
+        );
+
+        const { count, error: listError, data: listData } = await admin
           .from("allowed_users")
-          .select("email", { count: "exact", head: true })
-          .eq("email", user.email);
+          .select("email", { count: "exact", head: false })
+          .ilike("email", email);           // case-insensitive match via ilike
 
-        if ((count ?? 0) === 0) {
+        // (3) Log the exact result
+        console.log("[auth/callback] Allowlist query result — count :", count);
+        console.log("[auth/callback] Allowlist query result — data  :", JSON.stringify(listData));
+        console.log("[auth/callback] Allowlist query result — error :", listError ? JSON.stringify(listError) : "none");
+
+        if (listError) {
+          console.error("[auth/callback] Allowlist query FAILED — letting user through. Fix the allowed_users table.");
+          // Fail open: don't block the user if the table is broken
+        } else if (count === 0) {
+          console.log("[auth/callback] Email not in allowlist — blocking user.");
           await supabase.auth.signOut();
-          return NextResponse.redirect(`${origin}/login?error=not_allowed`);
+          return NextResponse.redirect(`${origin}/login?error=access_denied`);
+        } else {
+          console.log("[auth/callback] Email found in allowlist — proceeding.");
         }
 
-        // ── Onboarding check ───────────────────────────────────────────────
-        if (next === "/dashboard") {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("onboarding_completed")
-            .eq("id", user.id)
-            .single();
-
-          if (!profile?.onboarding_completed) {
-            return NextResponse.redirect(`${origin}/onboarding`);
-          }
-        }
+        return proceedToApp(origin, next, supabase, user.id);
       }
 
       return NextResponse.redirect(`${origin}${next}`);
@@ -44,4 +69,28 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+}
+
+// ── Helper ────────────────────────────────────────────────────────────────────
+
+async function proceedToApp(
+  origin: string,
+  next: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string
+) {
+  if (next === "/dashboard") {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", userId)
+      .single();
+
+    if (!profile?.onboarding_completed) {
+      return NextResponse.redirect(`${origin}/onboarding`);
+    }
+  }
+
+  return NextResponse.redirect(`${origin}${next}`);
 }
