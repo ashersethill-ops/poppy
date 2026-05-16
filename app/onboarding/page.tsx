@@ -118,7 +118,7 @@ const TRUST_COPY = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
   const router = useRouter();
-  const { setConditions: setContextConditions, setOnboardingCompleted, setDocuments: setContextDocuments, setIsCustodian: setContextIsCustodian, setPatientName: setContextPatientName } = usePoppyContext();
+  const { setConditions: setContextConditions, setOnboardingCompleted, setDocuments: setContextDocuments, setIsCustodian: setContextIsCustodian, setPatientName: setContextPatientName, setUserName } = usePoppyContext();
   const [screen, setScreen]               = useState<Screen>(1);
   const [firstName, setFirstName]         = useState("");
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -306,7 +306,7 @@ export default function OnboardingPage() {
   // ── Final save: persist conditions + role + onboarding_completed ────────────
   async function finishOnboarding(
     conditions: string[],
-    roleData: { is_custodian: boolean; patient_name?: string },
+    roleData: { is_custodian: boolean; patient_name?: string; name?: string },
     loc?: { text: string; data: { lat: number; lng: number } | null }
   ) {
     setSaving(true);
@@ -321,6 +321,7 @@ export default function OnboardingPage() {
           conditions,
           onboarding_completed: true,
           is_custodian: roleData.is_custodian,
+          ...(roleData.name        ? { name: roleData.name }               : {}),
           ...(roleData.patient_name ? { patient_name: roleData.patient_name } : {}),
           ...(loc?.text ? { location: loc.text } : {}),
           ...(loc?.data ? { location_lat: loc.data.lat, location_lng: loc.data.lng } : {}),
@@ -348,6 +349,7 @@ export default function OnboardingPage() {
     setContextConditions(conditions);
     setOnboardingCompleted(true);
     setContextIsCustodian(roleData.is_custodian);
+    if (roleData.name) setUserName(roleData.name);
     if (roleData.patient_name) setContextPatientName(roleData.patient_name);
     setSaving(false);
     setScreen(5);
@@ -687,9 +689,12 @@ export default function OnboardingPage() {
                       )}
                       <button
                         onClick={() => {
+                          const trimmed = patientNameInput.trim() || undefined;
                           const roleData = {
                             is_custodian: selectedRole !== "patient",
-                            patient_name: patientNameInput.trim() || undefined,
+                            patient_name: trimmed,
+                            // For patients, the input is their own name — write it to `name` too
+                            ...(selectedRole === "patient" ? { name: trimmed } : {}),
                           };
                           finishOnboarding(confirmedConditions, roleData);
                         }}

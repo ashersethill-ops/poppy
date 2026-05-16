@@ -58,6 +58,13 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
 
+  // Always sync email from auth, and backfill name from OAuth metadata if not set.
+  updates.email = user.email ?? null;
+  if (updates.name === undefined) {
+    const metaName = (user.user_metadata?.full_name ?? user.user_metadata?.name ?? null) as string | null;
+    if (metaName) updates.name = metaName;
+  }
+
   // PROFILE WRITE — triggered by: explicit client PATCH /api/profile call.
   // Prefer admin client (bypasses RLS) so new users without a row can be
   // upserted; fall back to user client if service key is not configured.
