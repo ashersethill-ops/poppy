@@ -466,7 +466,7 @@ export default function DashboardPage() {
       >
         {/* ── Slim header ───────────────────────────────────────────────── */}
         <div
-          className="flex-shrink-0 flex items-center gap-4 px-7 py-4"
+          className="relative flex-shrink-0 flex items-center gap-4 px-7 py-4"
           style={{ borderBottom: "1px solid var(--rule)" }}
         >
           {/* Hamburger */}
@@ -489,14 +489,16 @@ export default function DashboardPage() {
             <span style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontWeight: 500, fontSize: 20, color: "var(--ink)", letterSpacing: "-0.01em" }}>poppy</span>
           </div>
 
-          {/* Centered greeting */}
-          <div className="flex-1 text-center" style={{ marginRight: 10 + 40 + 8 /* mirror left cluster */ }}>
-            <p style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10.5, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--poppy)", marginBottom: 2 }}>
-              {todayLabel}
-            </p>
-            <h1 style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontWeight: 400, fontSize: 22, color: "var(--ink)", margin: 0, letterSpacing: "-0.01em" }}>
-              {getGreeting().toLowerCase()}{greetingName ? `, ${greetingName}.` : "."}
-            </h1>
+          {/* Greeting — absolutely centered so it sits directly above the center circle */}
+          <div className="absolute inset-x-0 flex justify-center pointer-events-none" style={{ top: "50%", transform: "translateY(-50%)" }}>
+            <div className="text-center">
+              <p style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10.5, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--poppy)", marginBottom: 2 }}>
+                {todayLabel}
+              </p>
+              <h1 style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontWeight: 400, fontSize: 22, color: "var(--ink)", margin: 0, letterSpacing: "-0.01em" }}>
+                {getGreeting().toLowerCase()}{greetingName ? `, ${greetingName}.` : "."}
+              </h1>
+            </div>
           </div>
 
         </div>
