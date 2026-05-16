@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET() {
   const supabase = await createClient();
@@ -73,8 +74,10 @@ export async function PATCH(req: NextRequest) {
   }
 
   // PGRST116 = "The result contains 0 rows" — profile row doesn't exist yet.
+  // Use the admin client (service role) so RLS doesn't block the INSERT for new users.
   if (error.code === "PGRST116") {
-    const { data: inserted, error: insertError } = await supabase
+    const adminClient = createAdminClient();
+    const { data: inserted, error: insertError } = await adminClient
       .from("profiles")
       .insert({ id: user.id, ...updates })
       .select()
