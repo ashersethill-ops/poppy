@@ -331,7 +331,7 @@ export default function OnboardingPage() {
         const body = await res.json().catch(() => ({ error: "Unknown error" }));
         console.error("[Poppy] Profile save failed during onboarding:", body.error);
         // Do NOT advance — let the user retry so onboarding_completed is persisted.
-        setSaveError("Something went wrong saving your profile. Please try again.");
+        setSaveError(`Could not save your profile: ${body.error ?? "unknown error"}`);
         setSaving(false);
         return;
       }

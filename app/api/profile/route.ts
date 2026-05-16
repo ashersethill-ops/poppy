@@ -59,18 +59,25 @@ export async function PATCH(req: NextRequest) {
   }
 
   // PROFILE WRITE — triggered by: explicit client PATCH /api/profile call.
-  // Use admin client + upsert so this works for both new users (no row yet) and
-  // existing users, without hitting RLS restrictions on INSERT.
-  const adminClient = createAdminClient();
-  const { data, error } = await adminClient
+  // Prefer admin client (bypasses RLS) so new users without a row can be
+  // upserted; fall back to user client if service key is not configured.
+  let writeClient: Awaited<ReturnType<typeof createClient>>;
+  try {
+    writeClient = createAdminClient() as unknown as Awaited<ReturnType<typeof createClient>>;
+  } catch (e) {
+    console.warn("[api/profile] Admin client unavailable, falling back to user client:", (e as Error).message);
+    writeClient = supabase;
+  }
+
+  const { data, error } = await writeClient
     .from("profiles")
     .upsert({ id: user.id, ...updates }, { onConflict: "id" })
     .select()
     .single();
 
   if (error) {
-    console.error("[api/profile] upsert failed:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[api/profile] upsert failed:", error.code, error.message);
+    return NextResponse.json({ error: `${error.code}: ${error.message}` }, { status: 500 });
   }
 
   return NextResponse.json({ profile: data });
