@@ -44,6 +44,8 @@ type PoppyContextType = {
   displayName: string | null;
   /** The logged-in user's own first name — used only in "Good morning" greetings. */
   greetingName: string | null;
+  location: string | null;
+  setLocation: (v: string | null) => void;
   setIsCustodian: (v: boolean) => void;
   setPatientName: (v: string | null) => void;
   setUserName: (v: string | null) => void;
@@ -76,6 +78,8 @@ export const PoppyContext = createContext<PoppyContextType>({
   userName: null,
   displayName: null,
   greetingName: null,
+  location: null,
+  setLocation: () => {},
   setIsCustodian: () => {},
   setPatientName: () => {},
   setUserName: () => {},
@@ -100,6 +104,7 @@ export default function PoppyProvider({ children }: { children: React.ReactNode 
   const [isCustodian, setIsCustodian] = useState(false);
   const [patientName, setPatientName] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [location, setLocation] = useState<string | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -118,6 +123,7 @@ export default function PoppyProvider({ children }: { children: React.ReactNode 
         setIsCustodian(custodian);
         setPatientName(pName);
         setUserName(uName);
+        setLocation(profile?.location ?? null);
 
         // Dev diagnostic — remove once confirmed working
         if (process.env.NODE_ENV === "development") {
@@ -142,6 +148,9 @@ export default function PoppyProvider({ children }: { children: React.ReactNode 
   }, []);
 
   async function resetJourney() {
+    // PROFILE WRITE — triggered by: explicit call to resetJourney() from a
+    // consuming component. This function is exported via context but currently
+    // has no UI call site — it is reserved for programmatic use only.
     await fetch("/api/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -185,6 +194,8 @@ export default function PoppyProvider({ children }: { children: React.ReactNode 
       userName,
       displayName,
       greetingName,
+      location,
+      setLocation,
       setIsCustodian,
       setPatientName,
       setUserName,
