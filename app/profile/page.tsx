@@ -23,7 +23,6 @@ export default function ProfilePage() {
     setConditions: setContextConditions,
     isCustodian: ctxIsCustodian,
     patientName: ctxPatientName,
-    credits,
     setDocuments,
     setMessages,
     setOnboardingCompleted,
@@ -284,52 +283,6 @@ export default function ProfilePage() {
           style={{ background: "var(--soft)" }}
         >
           <ConditionSelector selected={conditions} onChange={setConditions} />
-        </div>
-      </section>
-
-      {/* AI Credits */}
-      <section className="mb-8">
-        <h2
-          className="text-sm font-semibold uppercase tracking-wider mb-4 opacity-50"
-          style={{ color: "var(--primary)" }}
-        >
-          AI Credits
-        </h2>
-        <div className="rounded-2xl p-6 flex flex-col gap-4" style={{ background: "var(--soft)" }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-sm" style={{ color: "var(--primary)" }}>
-                {credits ?? "—"} credits remaining
-              </p>
-              <p className="text-xs text-stone-400 mt-0.5">
-                1 credit is spent each time you refresh AI-generated content
-              </p>
-            </div>
-            <div
-              className="text-3xl font-bold tabular-nums"
-              style={{ color: credits === 0 ? "#dc2626" : "var(--accent)" }}
-            >
-              {credits ?? "—"}
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--background)" }}>
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${Math.max(0, ((credits ?? 300) / 300) * 100)}%`,
-                background: credits !== null && credits < 50 ? "#dc2626" : "var(--accent)",
-              }}
-            />
-          </div>
-          <p className="text-xs text-stone-400">of 300 initial credits</p>
-
-          {credits === 0 && (
-            <p className="text-xs font-medium px-3 py-2 rounded-xl" style={{ background: "#fee2e2", color: "#b91c1c" }}>
-              You have used all your AI credits. Content will load from cache only.
-            </p>
-          )}
         </div>
       </section>
 
