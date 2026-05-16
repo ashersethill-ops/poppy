@@ -77,13 +77,15 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile");
       const { profile } = await res.json() as { profile: Profile | null };
       if (profile) {
+        // Only set fields not managed by context (dob, phone, location).
+        // isCustodian, patientName, and conditions come from context sync effects
+        // so they are NOT set here — the local fetch would otherwise overwrite a
+        // correct context value with a stale/null DB value, causing the visible
+        // "switches back to patient" bug.
         if (profile.name) setName(profile.name);
-        if (Array.isArray(profile.conditions)) setConditions(profile.conditions);
         setDob(profile.date_of_birth ?? "");
         setPhone(profile.phone ?? "");
         setLocation(profile.location ?? "");
-        setIsCustodian(profile.is_custodian ?? false);
-        setPatientName(profile.patient_name ?? "");
       }
     }
     load();
