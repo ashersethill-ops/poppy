@@ -3,7 +3,7 @@ import "./globals.css";
 import Header from "./components/Header";
 import PoppyProvider from "./components/PoppyProvider";
 import { createClient } from "@/lib/supabase/server";
-import { getDisplayName } from "@/lib/profile-names";
+import { getGreetingName } from "@/lib/profile-names";
 
 export const metadata: Metadata = {
   title: "Poppy",
@@ -23,8 +23,8 @@ export default async function RootLayout({
     ? await supabase.from("profiles").select("is_doctor, is_custodian, conditions, name, patient_name").eq("id", user.id).maybeSingle()
     : { data: null };
 
-  // Header always shows the patient name — same rule as the rest of the app
-  const displayName = getDisplayName(profile) ?? (
+  // Header avatar shows the logged-in user's own name, not the patient's name
+  const displayName = getGreetingName(profile) ?? (
     user?.user_metadata?.full_name
     ?? user?.user_metadata?.name
     ?? user?.email
