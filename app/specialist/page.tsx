@@ -281,7 +281,7 @@ function SkeletonCard() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SpecialistPage() {
-  const { conditions, conditionsLoaded, documents, documentsLoaded, setPageContext, credits, setCredits } = usePoppyContext();
+  const { conditions, conditionsLoaded, documents, documentsLoaded, location, setPageContext, credits, setCredits } = usePoppyContext();
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
   const [savedEmails, setSavedEmails] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -289,22 +289,10 @@ export default function SpecialistPage() {
   const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<Category>("physician");
-  const [location, setLocation] = useState<string | null>(null);
-  const [locationLoaded, setLocationLoaded] = useState(false);
 
   const hasContext = conditions.length > 0 || documents.length > 0;
   const conditionsKey = conditions.slice().sort().join("|");
   const documentsKey = documents.map((d) => d.id).sort().join("|");
-
-  useEffect(() => {
-    fetch("/api/profile")
-      .then((r) => r.json())
-      .then(({ profile }) => {
-        if (profile?.location) setLocation(profile.location);
-      })
-      .catch(() => {})
-      .finally(() => setLocationLoaded(true));
-  }, []);
 
   useEffect(() => {
     fetch("/api/saved-specialists")
@@ -318,7 +306,7 @@ export default function SpecialistPage() {
   }, []);
 
   useEffect(() => {
-    if (!conditionsLoaded || !documentsLoaded || !locationLoaded) return;
+    if (!conditionsLoaded || !documentsLoaded) return;
     if (!hasContext) { setLoading(false); return; }
 
     setLoading(true);
@@ -344,7 +332,7 @@ export default function SpecialistPage() {
       .catch(() => setError("Could not load specialists."))
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conditionsKey, documentsKey, conditionsLoaded, documentsLoaded, locationLoaded]);
+  }, [conditionsKey, documentsKey, conditionsLoaded, documentsLoaded]);
 
   async function updateSpecialists() {
     if (!hasContext || updating) return;
@@ -451,22 +439,6 @@ export default function SpecialistPage() {
         )}
       </div>
 
-      {/* Location banner — shown when location is not set */}
-      {locationLoaded && !location && !loading && hasContext && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, marginBottom: 24,
-          padding: "12px 18px", borderRadius: 12,
-          background: "rgba(196,149,106,0.08)", border: "1px solid rgba(196,149,106,0.25)",
-        }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-          </svg>
-          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14, color: "var(--ink-soft)", margin: 0 }}>
-            <a href="/profile" style={{ color: "var(--accent)", textDecoration: "underline", textUnderlineOffset: 2 }}>Add your location</a>
-            {" "}in your profile to find specialists near you.
-          </p>
-        </div>
-      )}
 
       {/* Tab navigation */}
       <div style={{ display: "flex", gap: 4, marginBottom: 28, flexWrap: "wrap" }}>

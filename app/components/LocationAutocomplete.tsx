@@ -2,86 +2,118 @@
 
 import { useState, useEffect, useRef } from "react";
 
-type NominatimResult = {
-  display_name: string;
-  address?: {
-    city?: string;
-    town?: string;
-    village?: string;
-    hamlet?: string;
-    state?: string;
-    country?: string;
-  };
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+export type LocationData = {
+  city: string;
+  country: string;
+  lat: number;
+  lng: number;
 };
 
-function formatResult(r: NominatimResult): string {
-  const a = r.address ?? {};
-  const city = a.city ?? a.town ?? a.village ?? a.hamlet ?? a.state ?? "";
-  const country = a.country ?? "";
-  return city && country ? `${city}, ${country}` : city || country || r.display_name;
-}
+type GeoResult = {
+  id: number;
+  name: string;
+  country: string;
+  country_code: string;
+  latitude: number;
+  longitude: number;
+  admin1?: string;
+};
 
 type Props = {
-  value: string;
-  onChange: (value: string) => void;
+  /**
+   * Pre-existing location text from the DB (e.g. "London, United Kingdom").
+   * When provided, the component starts in confirmed (display) mode.
+   * Reacts to changes — useful when the DB value loads asynchronously.
+   */
+  initialText?: string;
+  /** Called when the user selects a location from the dropdown or via GPS */
+  onConfirm: (data: LocationData, displayText: string) => void;
+  /** Called when the user clicks "Change" to re-enter their location */
+  onClear?: () => void;
   placeholder?: string;
-  /** Style applied to the outer wrapper div */
+  /** Style for the outer wrapper div */
   style?: React.CSSProperties;
-  /** Style applied to the <input> element */
+  /** Style for the <input> element */
   inputStyle?: React.CSSProperties;
   inputClassName?: string;
   autoFocus?: boolean;
-  /** When provided, a "Detect" button appears that calls this handler */
-  onDetect?: () => void;
-  detecting?: boolean;
 };
 
+// ── Open-Meteo geocoding (free, no API key) ───────────────────────────────────
+
+async function searchLocations(q: string): Promise<GeoResult[]> {
+  const res = await fetch(
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=en&format=json`
+  );
+  const data = await res.json();
+  return (data.results ?? []) as GeoResult[];
+}
+
+function formatDisplay(r: GeoResult): string {
+  return r.country ? `${r.name}, ${r.country}` : r.name;
+}
+
+function formatLabel(r: GeoResult): string {
+  if (r.admin1 && r.admin1 !== r.name) return `${r.name}, ${r.admin1}`;
+  return r.name;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function LocationAutocomplete({
-  value,
-  onChange,
+  initialText,
+  onConfirm,
+  onClear,
   placeholder = "e.g. London, New York, Sydney",
   style,
   inputStyle,
   inputClassName,
   autoFocus,
-  onDetect,
-  detecting,
 }: Props) {
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const trimmedInitial = initialText?.trim() ?? "";
+  const [confirmed, setConfirmed]         = useState(!!trimmedInitial);
+  const [confirmedText, setConfirmedText] = useState(trimmedInitial);
+  const [query, setQuery]                 = useState("");
+  const [suggestions, setSuggestions]     = useState<GeoResult[]>([]);
+  const [open, setOpen]                   = useState(false);
+  const [activeIndex, setActiveIndex]     = useState(-1);
+  const [detecting, setDetecting]         = useState(false);
+  const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch suggestions on debounce
+  // Sync confirmed state when initialText changes (async DB load)
+  useEffect(() => {
+    const t = initialText?.trim() ?? "";
+    if (t) {
+      setConfirmed(true);
+      setConfirmedText(t);
+    }
+  }, [initialText]);
+
+  // Autocomplete — debounced, min 3 chars
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    const q = value.trim();
-    if (q.length < 2) {
-      setSuggestions([]);
-      setOpen(false);
-      return;
-    }
+    const q = query.trim();
+    if (q.length < 3) { setSuggestions([]); setOpen(false); return; }
+
     timerRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=6`,
-          { headers: { "Accept-Language": "en" } }
-        );
-        const data: NominatimResult[] = await res.json();
-        const deduped = [...new Set(data.map(formatResult))].slice(0, 5);
-        setSuggestions(deduped);
-        setOpen(deduped.length > 0);
+        const results = await searchLocations(q);
+        setSuggestions(results);
+        setOpen(results.length > 0);
         setActiveIndex(-1);
       } catch {
         setSuggestions([]);
         setOpen(false);
       }
-    }, 350);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [value]);
+    }, 300);
 
-  // Close on outside click
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [query]);
+
+  // Close dropdown on outside click
   useEffect(() => {
     function handleOutside(e: MouseEvent) {
       if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
@@ -90,6 +122,63 @@ export default function LocationAutocomplete({
     return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
 
+  // ── Internal confirm ──────────────────────────────────────────────────────
+  function confirmLocation(data: LocationData, text: string) {
+    setConfirmed(true);
+    setConfirmedText(text);
+    setQuery("");
+    setSuggestions([]);
+    setOpen(false);
+    onConfirm(data, text);
+  }
+
+  function select(r: GeoResult) {
+    confirmLocation(
+      { city: r.name, country: r.country, lat: r.latitude, lng: r.longitude },
+      formatDisplay(r)
+    );
+  }
+
+  function handleChange() {
+    setConfirmed(false);
+    setConfirmedText("");
+    setQuery("");
+    onClear?.();
+  }
+
+  // ── Browser GPS → Nominatim reverse geocode ───────────────────────────────
+  async function handleDetect() {
+    if (!navigator.geolocation) return;
+    setDetecting(true);
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+      );
+      const { latitude, longitude } = pos.coords;
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+      );
+      const data = await res.json() as {
+        address?: {
+          city?: string; town?: string; village?: string;
+          suburb?: string; county?: string; state?: string; country?: string;
+        };
+      };
+      const addr = data.address ?? {};
+      const city    = addr.city ?? addr.town ?? addr.village ?? addr.suburb ?? addr.county ?? addr.state ?? "";
+      const country = addr.country ?? "";
+      const text    = city && country ? `${city}, ${country}` : city || country;
+      if (text) {
+        confirmLocation({ city, country, lat: latitude, lng: longitude }, text);
+      }
+    } catch {
+      // silent — user can type manually
+    } finally {
+      setDetecting(false);
+    }
+  }
+
+  // ── Keyboard navigation ───────────────────────────────────────────────────
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (!open || suggestions.length === 0) return;
     if (e.key === "ArrowDown") {
@@ -100,26 +189,49 @@ export default function LocationAutocomplete({
       setActiveIndex((i) => Math.max(i - 1, -1));
     } else if (e.key === "Enter" && activeIndex >= 0) {
       e.preventDefault();
-      onChange(suggestions[activeIndex]);
-      setOpen(false);
+      select(suggestions[activeIndex]);
     } else if (e.key === "Escape") {
       setOpen(false);
     }
   }
 
-  function select(s: string) {
-    onChange(s);
-    setSuggestions([]);
-    setOpen(false);
+  // ── Confirmed mode ────────────────────────────────────────────────────────
+  if (confirmed && confirmedText) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", ...style }}>
+        <span style={{
+          fontFamily: "'Newsreader', Georgia, serif",
+          fontStyle: "italic",
+          fontSize: 15,
+          color: "var(--ink, #241A14)",
+        }}>
+          {confirmedText}
+        </span>
+        <button
+          type="button"
+          onClick={handleChange}
+          style={{
+            background: "transparent", border: "none", cursor: "pointer",
+            fontSize: 13, color: "var(--accent, #c4956a)",
+            textDecoration: "underline", textUnderlineOffset: 2,
+            padding: 0, flexShrink: 0,
+          }}
+        >
+          Change
+        </button>
+      </div>
+    );
   }
 
+  // ── Editing mode ──────────────────────────────────────────────────────────
   return (
     <div ref={containerRef} style={{ position: "relative", ...style }}>
       <div style={{ display: "flex", gap: 8 }}>
+        {/* Input */}
         <input
           type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => suggestions.length > 0 && setOpen(true)}
           placeholder={placeholder}
@@ -128,30 +240,31 @@ export default function LocationAutocomplete({
           className={inputClassName}
           style={{ flex: 1, minWidth: 0, ...inputStyle }}
         />
-        {onDetect && (
-          <button
-            type="button"
-            onClick={onDetect}
-            disabled={detecting}
-            title="Use my current location"
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "0 14px", borderRadius: 12,
-              fontSize: 12, fontWeight: 500, whiteSpace: "nowrap", flexShrink: 0,
-              background: "var(--soft)", color: "var(--primary)",
-              border: "1px solid #d4c4b0", cursor: "pointer",
-              opacity: detecting ? 0.5 : 1, transition: "opacity 0.15s",
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-            {detecting ? "Locating…" : "Detect"}
-          </button>
-        )}
+
+        {/* GPS button */}
+        <button
+          type="button"
+          onClick={handleDetect}
+          disabled={detecting}
+          title="Use my current location"
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "0 14px", borderRadius: 12,
+            fontSize: 12, fontWeight: 500, whiteSpace: "nowrap", flexShrink: 0,
+            background: "var(--soft, #F4ECDF)", color: "var(--primary, #7c6f5e)",
+            border: "1px solid #d4c4b0", cursor: "pointer",
+            opacity: detecting ? 0.5 : 1, transition: "opacity 0.15s",
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          {detecting ? "Locating…" : "Use my location"}
+        </button>
       </div>
 
+      {/* Dropdown */}
       {open && suggestions.length > 0 && (
         <div style={{
           position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 100,
@@ -160,16 +273,16 @@ export default function LocationAutocomplete({
           boxShadow: "0 8px 28px rgba(0,0,0,0.10)",
           overflow: "hidden",
         }}>
-          {suggestions.map((s, i) => (
+          {suggestions.map((r, i) => (
             <button
-              key={i}
+              key={r.id}
               type="button"
-              onMouseDown={(e) => { e.preventDefault(); select(s); }}
+              onMouseDown={(e) => { e.preventDefault(); select(r); }}
               onMouseEnter={() => setActiveIndex(i)}
               onMouseLeave={() => setActiveIndex(-1)}
               style={{
                 display: "flex", alignItems: "center", gap: 10,
-                width: "100%", padding: "11px 16px", textAlign: "left",
+                width: "100%", padding: "10px 16px", textAlign: "left",
                 background: activeIndex === i ? "var(--soft, #F4ECDF)" : "transparent",
                 border: "none",
                 borderBottom: i < suggestions.length - 1 ? "1px solid rgba(91,74,59,0.10)" : "none",
@@ -180,12 +293,18 @@ export default function LocationAutocomplete({
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
-              <span style={{
-                fontFamily: "'Newsreader', Georgia, serif",
-                fontSize: 14, color: "var(--ink, #241A14)",
-              }}>
-                {s}
-              </span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14, color: "var(--ink, #241A14)" }}>
+                  {formatLabel(r)}
+                </span>
+                <span style={{
+                  fontFamily: "'Geist Mono', ui-monospace, monospace",
+                  fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const,
+                  color: "var(--ink-faded, #937A62)",
+                }}>
+                  {r.country}
+                </span>
+              </div>
             </button>
           ))}
         </div>

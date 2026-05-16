@@ -3,10 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ConditionSelector from "../components/ConditionSelector";
-import LocationAutocomplete from "../components/LocationAutocomplete";
 import { usePoppyContext } from "../components/PoppyProvider";
 
-type Screen = 1 | 2 | 3 | 4 | "analyzing" | "confirm" | "conditions" | "role" | "location" | 5;
+type Screen = 1 | 2 | 3 | 4 | "analyzing" | "confirm" | "conditions" | "role" | 5;
 
 // ─── Typewriter hook ──────────────────────────────────────────────────────────
 function useTypewriter(lines: string[], speed = 35, pause = 550) {
@@ -137,9 +136,6 @@ export default function OnboardingPage() {
   const [saving, setSaving]           = useState(false);
   const [selectedRole, setSelectedRole] = useState<"patient" | "family" | "nonFamily" | null>(null);
   const [patientNameInput, setPatientNameInput] = useState("");
-  const [pendingRoleData, setPendingRoleData] = useState<{ is_custodian: boolean; patient_name?: string } | null>(null);
-  const [locationText, setLocationText] = useState("");
-  const [locating, setLocating] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // ── Load profile — redirect if already onboarded
@@ -186,9 +182,6 @@ export default function OnboardingPage() {
   );
   const sRole = useTypewriter(
     screen === "role" ? ["One last thing."] : []
-  );
-  const sLocation = useTypewriter(
-    screen === "location" ? ["Almost there."] : []
   );
   const s5 = useTypewriter(
     screen === 5
@@ -309,38 +302,16 @@ export default function OnboardingPage() {
     setScreen("conditions");
   }
 
-  // ── Get browser location → reverse geocode via Nominatim ──────────────────
-  async function handleGetLocation() {
-    if (!navigator.geolocation) return;
-    setLocating(true);
-    try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
-      );
-      const { latitude, longitude } = pos.coords;
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-      );
-      const data = await res.json() as { address?: { city?: string; town?: string; village?: string; state?: string; country?: string } };
-      const addr = data.address ?? {};
-      const city = addr.city ?? addr.town ?? addr.village ?? addr.state ?? "";
-      const country = addr.country ?? "";
-      setLocationText(city && country ? `${city}, ${country}` : city || country || "");
-    } catch {
-      // silent — user can type manually
-    } finally {
-      setLocating(false);
-    }
-  }
-
   // ── Final save: persist conditions + role + location + onboarding_completed ─
   async function finishOnboarding(
     conditions: string[],
     roleData: { is_custodian: boolean; patient_name?: string },
-    location?: string
+    loc?: { text: string; data: LocationData | null }
   ) {
     setSaving(true);
     try {
+      // PROFILE WRITE — triggered by: user clicking "Continue →" on the role screen.
+      // The only write in the onboarding flow.
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -349,12 +320,15 @@ export default function OnboardingPage() {
           onboarding_completed: true,
           is_custodian: roleData.is_custodian,
           ...(roleData.patient_name ? { patient_name: roleData.patient_name } : {}),
-          ...(location ? { location } : {}),
+          ...(loc?.text ? { location: loc.text } : {}),
+          ...(loc?.data ? { location_lat: loc.data.lat, location_lng: loc.data.lng } : {}),
         }),
       });
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({ error: "Unknown error" }));
         console.error("[Poppy] Profile save failed during onboarding:", error);
+      } else {
+        console.log("[Poppy] Onboarding save succeeded — location:", loc?.text ?? "(skipped)");
       }
     } catch (err) {
       console.error("[Poppy] Network error during onboarding profile save:", err);
@@ -699,11 +673,11 @@ export default function OnboardingPage() {
                       </div>
                       <button
                         onClick={() => {
-                          setPendingRoleData({
+                          const roleData = {
                             is_custodian: selectedRole !== "patient",
                             patient_name: patientNameInput.trim() || undefined,
-                          });
-                          setScreen("location");
+                          };
+                          finishOnboarding(confirmedConditions, roleData);
                         }}
                         disabled={!patientNameInput.trim()}
                         className="self-start px-7 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
@@ -718,71 +692,6 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Screen "location" — Where are you? */}
-          {screen === "location" && (
-            <div className="onb-enter flex flex-col gap-8">
-              <TypedText displayed={sLocation.displayed} done={sLocation.done} />
-              {sLocation.done && (
-                <div className="flex flex-col gap-5" style={{ animation: "onbFadeUp 0.5s ease-out both" }}>
-                  <p className="text-base text-stone-500 leading-relaxed -mt-2">
-                    Share your location so Poppy can find specialists and support groups near you.
-                  </p>
-
-                  {/* Geolocation button */}
-                  <button
-                    onClick={handleGetLocation}
-                    disabled={locating}
-                    className="flex items-center gap-3 self-start px-5 py-3 rounded-xl text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
-                    style={{ background: "var(--soft)", color: "var(--primary)", border: "1px solid #d4c4b0" }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="3"/>
-                      <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
-                    </svg>
-                    {locating ? "Detecting location…" : "Use my current location"}
-                  </button>
-
-                  {/* Location input with autocomplete */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--primary)" }}>
-                      Or type your city or region
-                    </label>
-                    <LocationAutocomplete
-                      value={locationText}
-                      onChange={setLocationText}
-                      placeholder="e.g. London, New York, Sydney"
-                      autoFocus={!locating}
-                      inputClassName="px-4 py-3 rounded-xl text-sm outline-none"
-                      inputStyle={{ background: "var(--soft)", color: "var(--foreground)", border: "1px solid transparent" }}
-                    />
-                  </div>
-
-                  {/* Privacy note */}
-                  <p className="text-xs text-stone-400 leading-relaxed">
-                    Your location is used only to surface nearby specialists and communities. It is never shared.
-                  </p>
-
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => finishOnboarding(confirmedConditions, pendingRoleData!, locationText.trim() || undefined)}
-                      disabled={saving}
-                      className="px-7 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-                      style={{ background: "var(--accent)" }}
-                    >
-                      {saving ? "Saving…" : "Set up my account →"}
-                    </button>
-                    <button
-                      onClick={() => finishOnboarding(confirmedConditions, pendingRoleData!)}
-                      disabled={saving}
-                      className="text-sm text-stone-400 hover:text-stone-600 transition-colors"
-                    >
-                      Skip for now
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Screen 5 — Done */}
           {screen === 5 && (
