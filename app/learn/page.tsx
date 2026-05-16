@@ -23,74 +23,182 @@ type Article = {
   readingTime: string;
 };
 
+// ── Garden atoms ──────────────────────────────────────────────────────────────
+
+const Overline = ({
+  children,
+  color,
+  style,
+}: {
+  children: React.ReactNode;
+  color?: string;
+  style?: React.CSSProperties;
+}) => (
+  <span
+    style={{
+      fontFamily: "'Geist Mono', ui-monospace, monospace",
+      fontSize: 10,
+      letterSpacing: "0.14em",
+      textTransform: "uppercase" as const,
+      color: color ?? "var(--ink-faded)",
+      ...style,
+    }}
+  >
+    {children}
+  </span>
+);
+
+const GardenPaper = ({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) => (
+  <div style={{ background: "var(--paper)", borderRadius: 18, border: "1px solid var(--rule)", ...style }}>
+    {children}
+  </div>
+);
+
+// Colours cycle across articles
+const ARTICLE_COLORS = [
+  "var(--poppy)",
+  "var(--sage)",
+  "var(--gold)",
+  "#C96B7A",
+  "var(--accent)",
+];
+
+// ── Botanical cover motif (CSS-only circles, no SVG dependency) ───────────────
+
+function BotanicalCover({ color = "var(--poppy)" }: { color?: string }) {
+  return (
+    <div style={{ background: "var(--soft)", position: "relative", minHeight: 240, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      {/* Large flower-like blobs */}
+      <div style={{ position: "absolute", width: 160, height: 160, borderRadius: "50%", background: color, opacity: 0.10, top: "50%", left: "50%", transform: "translate(-50%, -50%)" }} />
+      <div style={{ position: "absolute", width: 100, height: 100, borderRadius: "50%", background: color, opacity: 0.12, top: "20%", left: "20%" }} />
+      <div style={{ position: "absolute", width: 80, height: 80, borderRadius: "50%", background: "var(--sage)", opacity: 0.10, bottom: "20%", right: "18%" }} />
+      <div style={{ position: "absolute", width: 60, height: 60, borderRadius: "50%", background: "var(--gold)", opacity: 0.13, top: "15%", right: "22%" }} />
+      {/* Center */}
+      <div style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: color, opacity: 0.22 }} />
+    </div>
+  );
+}
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+function SkeletonFeatured() {
+  return (
+    <GardenPaper style={{ overflow: "hidden", display: "grid", gridTemplateColumns: "1fr 1.1fr", marginBottom: 44 }}>
+      <div style={{ background: "var(--soft)", minHeight: 240 }} />
+      <div style={{ padding: 36, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ height: 10, width: "60%", borderRadius: 999, background: "var(--soft)" }} />
+        <div style={{ height: 22, width: "90%", borderRadius: 999, background: "var(--soft)" }} />
+        <div style={{ height: 22, width: "70%", borderRadius: 999, background: "var(--soft)" }} />
+        <div style={{ height: 14, borderRadius: 8, background: "var(--soft)", marginTop: 8 }} />
+        <div style={{ height: 14, borderRadius: 8, background: "var(--soft)" }} />
+        <div style={{ height: 60, borderRadius: 12, background: "var(--soft)", marginTop: 8 }} />
+      </div>
+    </GardenPaper>
+  );
+}
+
 function SkeletonCard() {
   return (
-    <div
-      className="rounded-3xl p-6 flex flex-col gap-4 animate-pulse"
-      style={{ background: "var(--background)", boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}
-    >
-      <div className="flex items-center justify-between">
-        <div className="h-4 rounded-full w-1/3" style={{ background: "var(--soft)" }} />
-        <div className="h-4 rounded-full w-20" style={{ background: "var(--soft)" }} />
-      </div>
-      <div className="h-5 rounded-full w-3/4" style={{ background: "var(--soft)" }} />
-      <div className="h-3 rounded-full w-full" style={{ background: "var(--soft)" }} />
-      <div className="h-3 rounded-full w-5/6" style={{ background: "var(--soft)" }} />
-      <div className="flex flex-col gap-2 mt-2">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="h-3 rounded-full w-4/5" style={{ background: "var(--soft)" }} />
-        ))}
-      </div>
-    </div>
+    <GardenPaper style={{ padding: 22, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ height: 10, width: "60%", borderRadius: 999, background: "var(--soft)" }} />
+      <div style={{ height: 15, width: "85%", borderRadius: 999, background: "var(--soft)" }} />
+      <div style={{ height: 10, width: "100%", borderRadius: 999, background: "var(--soft)" }} />
+      <div style={{ height: 10, width: "80%", borderRadius: 999, background: "var(--soft)" }} />
+    </GardenPaper>
   );
 }
 
-function ArticleCard({ article }: { article: Article }) {
+// ── Featured article ──────────────────────────────────────────────────────────
+
+function FeaturedArticle({ article, color }: { article: Article; color: string }) {
   return (
-    <div
-      className="rounded-3xl p-6 flex flex-col gap-4"
-      style={{ background: "var(--background)", boxShadow: "0 2px 16px 0 rgba(0,0,0,0.07)" }}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span
-          className="text-xs font-medium px-2.5 py-0.5 rounded-full"
-          style={{ background: "var(--soft)", color: "var(--accent)" }}
-        >
-          {article.condition}
-        </span>
-        <span className="text-xs text-stone-400">{article.readingTime}</span>
+    <GardenPaper style={{ overflow: "hidden", display: "grid", gridTemplateColumns: "1fr 1.1fr", boxShadow: "0 16px 36px -22px rgba(36,26,20,0.16)" }}>
+      <BotanicalCover color={color} />
+      <div style={{ padding: "36px 36px 32px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <Overline color={color}>{article.condition}</Overline>
+          <Overline>· {article.readingTime}</Overline>
+        </div>
+        <h2 style={{
+          fontFamily: "'Newsreader', Georgia, serif",
+          fontSize: 30, lineHeight: 1.12, fontWeight: 400,
+          color: "var(--ink)", margin: "0 0 14px", letterSpacing: "-0.015em",
+        }}>
+          {article.title}
+        </h2>
+        <p style={{
+          fontFamily: "'Newsreader', Georgia, serif", fontSize: 15.5,
+          color: "var(--ink-soft)", margin: "0 0 20px", lineHeight: 1.65,
+        }}>
+          {article.summary}
+        </p>
+
+        {/* Poppy's read */}
+        {article.keyPoints.length > 0 && (
+          <div style={{
+            padding: "14px 18px", background: "var(--soft)", borderRadius: 12,
+            border: "1px dashed var(--rule)", marginBottom: 20,
+          }}>
+            <Overline color="var(--poppy-deep)" style={{ display: "block", marginBottom: 8 }}>
+              key points
+            </Overline>
+            <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+              {article.keyPoints.map((pt, i) => (
+                <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <span style={{ color: color, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 16, lineHeight: 1 }}>·</span>
+                  <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 14.5, color: "var(--ink)", lineHeight: 1.55 }}>{pt}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
-
-      <h2 className="text-lg font-semibold leading-snug" style={{ color: "var(--primary)" }}>
-        {article.title}
-      </h2>
-
-      <p className="text-sm text-stone-500 leading-relaxed">{article.summary}</p>
-
-      <div style={{ borderTop: "1px solid var(--soft)" }} />
-
-      <ul className="flex flex-col gap-2">
-        {article.keyPoints.map((point, i) => (
-          <li key={i} className="flex items-start gap-2.5 text-sm text-stone-600">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              className="flex-shrink-0 mt-0.5"
-              style={{ color: "var(--accent)" }}
-            >
-              <polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span>{point}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    </GardenPaper>
   );
 }
+
+// ── Further reading card ──────────────────────────────────────────────────────
+
+function FurtherReadingCard({ article, color }: { article: Article; color: string }) {
+  return (
+    <GardenPaper style={{ padding: 22, display: "flex", flexDirection: "column", gap: 10 }}>
+      <Overline color={color}>{article.condition}</Overline>
+      <h3 style={{
+        fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+        fontSize: 20, fontWeight: 400, color: "var(--ink)", margin: 0, lineHeight: 1.2,
+      }}>
+        {article.title}
+      </h3>
+      <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.6, margin: 0, flex: 1 }}>
+        {article.summary}
+      </p>
+      {article.keyPoints.length > 0 && (
+        <ul style={{ margin: "4px 0 0", paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
+          {article.keyPoints.slice(0, 2).map((pt, i) => (
+            <li key={i} style={{ display: "flex", gap: 8 }}>
+              <span style={{ color, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic" }}>·</span>
+              <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.5 }}>{pt}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div style={{ marginTop: "auto", paddingTop: 12, borderTop: "1px dashed var(--rule)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Overline>{article.readingTime}</Overline>
+        <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 13, color }}>
+          {article.condition} ›
+        </span>
+      </div>
+    </GardenPaper>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LearnPage() {
   const { conditions, conditionsLoaded, documents, documentsLoaded, setPageContext, credits, setCredits } = usePoppyContext();
@@ -101,23 +209,16 @@ export default function LearnPage() {
   const [error, setError] = useState("");
 
   const hasContext = conditions.length > 0 || documents.length > 0;
-
-  // Use value-based keys so the effect re-runs whenever conditions actually change,
-  // not just when the array reference changes (which can be missed after navigation).
   const conditionsKey = conditions.slice().sort().join("|");
   const documentsKey = documents.map((d) => d.id).sort().join("|");
 
   useEffect(() => {
     if (!conditionsLoaded || !documentsLoaded) return;
 
-    // Always clear stale articles immediately when conditions change
     setArticles([]);
     setError("");
 
-    if (!hasContext) {
-      setLoading(false);
-      return;
-    }
+    if (!hasContext) { setLoading(false); return; }
 
     setLoading(true);
     fetch("/api/learn", {
@@ -170,43 +271,42 @@ export default function LearnPage() {
 
   if (!loading && conditionsLoaded && documentsLoaded && !hasContext) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-14 text-center">
-        <div
-          className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6"
-          style={{ background: "var(--soft)", color: "var(--accent)" }}
-        >
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-        </div>
-        <h1 className="text-3xl font-semibold tracking-tight mb-3" style={{ color: "var(--primary)" }}>
-          Learn About Your Conditions
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "56px 24px", textAlign: "center" }}>
+        <h1 style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 36, fontWeight: 400, color: "var(--ink)", margin: "0 0 16px" }}>
+          reading, <em>just for you.</em>
         </h1>
-        <p className="text-stone-500 leading-relaxed">
+        <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 17, color: "var(--ink-soft)", lineHeight: 1.65, marginBottom: 28 }}>
           Add your conditions in your profile and Poppy will create personalised educational articles for you.
         </p>
-        <a
-          href="/profile"
-          className="inline-block mt-6 px-6 py-2.5 rounded-xl text-sm font-medium text-white transition-opacity hover:opacity-90"
-          style={{ background: "var(--accent)" }}
-        >
+        <a href="/profile" style={{ padding: "12px 22px", borderRadius: 999, fontSize: 15, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", background: "var(--ink)", color: "var(--paper)", textDecoration: "none" }}>
           Go to Profile
         </a>
       </div>
     );
   }
 
+  const featured = articles[0];
+  const further = articles.slice(1);
+
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10">
+    <div style={{ maxWidth: 960, margin: "0 auto", padding: "40px 24px 80px" }}>
       <GeneralContentBanner />
-      <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+
+      {/* Header */}
+      <div style={{ marginBottom: 36, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight mb-2" style={{ color: "var(--primary)" }}>
-            Learn About Your Conditions
+          <Overline color="var(--poppy)" style={{ display: "block", marginBottom: 10 }}>
+            learn · personalised to {conditions.join(" · ") || "your conditions"}
+          </Overline>
+          <h1 style={{
+            fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+            fontSize: 42, fontWeight: 400, color: "var(--ink)", margin: 0,
+            letterSpacing: "-0.02em", lineHeight: 1.1,
+          }}>
+            reading, <em>just</em> for you.
           </h1>
-          <p className="text-stone-500 text-sm">
-            Plain-language guides for: {conditions.join(", ")}
+          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 17, color: "var(--ink-soft)", lineHeight: 1.6, margin: "12px 0 0", maxWidth: 560 }}>
+            Poppy has chosen the pieces that touch your case directly — written in plain language, with the context that matters.
           </p>
         </div>
         {!loading && hasContext && (
@@ -214,18 +314,38 @@ export default function LearnPage() {
         )}
       </div>
 
-      {error && (
-        <p className="text-red-500 text-sm mb-4">{error}</p>
-      )}
-
+      {error && <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 15, color: "#dc2626", marginBottom: 16 }}>{error}</p>}
       {loading && <AILoadingMessage messages={LEARN_MESSAGES} />}
 
-      <div className="flex flex-col gap-5">
-        {loading
-          ? Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
-          : articles.map((a, i) => <ArticleCard key={i} article={a} />)
-        }
-      </div>
+      {/* Featured article */}
+      {loading ? (
+        <SkeletonFeatured />
+      ) : featured ? (
+        <div style={{ marginBottom: 44 }}>
+          <FeaturedArticle article={featured} color={ARTICLE_COLORS[0]} />
+        </div>
+      ) : null}
+
+      {/* Further reading */}
+      {!loading && further.length > 0 && (
+        <div>
+          <Overline style={{ display: "block", marginBottom: 14 }}>further reading</Overline>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+            {further.map((a, i) => (
+              <FurtherReadingCard key={i} article={a} color={ARTICLE_COLORS[(i + 1) % ARTICLE_COLORS.length]} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loading && (
+        <div>
+          <div style={{ height: 10, width: 120, borderRadius: 999, background: "var(--soft)", marginBottom: 14 }} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+            {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -30,171 +30,280 @@ type Trial = {
   eligibility_reason: string;
 };
 
-const statusColors: Record<string, { bg: string; text: string }> = {
-  Recruiting: { bg: "#dcfce7", text: "#15803d" },
-  Active:     { bg: "#dbeafe", text: "#1d4ed8" },
-  Completed:  { bg: "var(--soft)", text: "#9ca3af" },
+// ── Garden atoms ──────────────────────────────────────────────────────────────
+
+const Overline = ({
+  children,
+  color,
+  style,
+}: {
+  children: React.ReactNode;
+  color?: string;
+  style?: React.CSSProperties;
+}) => (
+  <span
+    style={{
+      fontFamily: "'Geist Mono', ui-monospace, monospace",
+      fontSize: 10,
+      letterSpacing: "0.14em",
+      textTransform: "uppercase" as const,
+      color: color ?? "var(--ink-faded)",
+      ...style,
+    }}
+  >
+    {children}
+  </span>
+);
+
+const GardenPaper = ({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) => (
+  <div style={{ background: "var(--paper)", borderRadius: 18, border: "1px solid var(--rule)", ...style }}>
+    {children}
+  </div>
+);
+
+const Tag = ({ children, color }: { children: React.ReactNode; color?: string }) => (
+  <span style={{
+    fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10,
+    padding: "4px 10px", borderRadius: 999,
+    background: `${color ?? "var(--poppy)"}1f`,
+    color: color ?? "var(--poppy)",
+    letterSpacing: "0.12em", textTransform: "uppercase" as const, fontWeight: 500,
+  }}>
+    {children}
+  </span>
+);
+
+// ── Match strength helpers ─────────────────────────────────────────────────────
+
+const matchConfig = {
+  eligible:        { color: "var(--sage)",   label: "● strong match", icon: "✓" },
+  likely_eligible: { color: "var(--gold)",   label: "◐ likely match", icon: "~" },
+  not_eligible:    { color: "var(--ink-faded)", label: "○ no match",  icon: "✕" },
 };
 
-const eligibilityConfig = {
-  eligible: {
-    bg: "#dcfce7",
-    text: "#15803d",
-    icon: (
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 6 9 17 4 12" />
-      </svg>
-    ),
-    label: "You appear eligible",
-  },
-  likely_eligible: {
-    bg: "#fef3c7",
-    text: "#d97706",
-    icon: (
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-      </svg>
-    ),
-    label: "Likely eligible",
-  },
-  not_eligible: {
-    bg: "#fee2e2",
-    text: "#dc2626",
-    icon: (
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-      </svg>
-    ),
-    label: "Not eligible",
-  },
+const statusColor: Record<string, string> = {
+  Recruiting: "var(--sage)",
+  Active:     "var(--gold)",
+  Completed:  "var(--ink-faded)",
 };
 
-function SkeletonCard() {
+// ── Skeletons ─────────────────────────────────────────────────────────────────
+
+function SkeletonFeatured() {
   return (
-    <div
-      className="rounded-3xl p-6 flex flex-col gap-4 animate-pulse"
-      style={{ background: "var(--background)", boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}
-    >
-      <div className="h-5 rounded-full w-3/4" style={{ background: "var(--soft)" }} />
-      <div className="flex gap-2">
-        <div className="h-4 rounded-full w-20" style={{ background: "var(--soft)" }} />
-        <div className="h-4 rounded-full w-24" style={{ background: "var(--soft)" }} />
-        <div className="h-4 rounded-full w-20" style={{ background: "var(--soft)" }} />
+    <GardenPaper style={{ padding: 36, display: "flex", flexDirection: "column", gap: 18, marginBottom: 44 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        {[80, 100, 70].map((w, i) => (
+          <div key={i} style={{ height: 22, width: w, borderRadius: 999, background: "var(--soft)" }} />
+        ))}
       </div>
-      <div className="h-3 rounded-full w-full" style={{ background: "var(--soft)" }} />
-      <div className="h-3 rounded-full w-5/6" style={{ background: "var(--soft)" }} />
-      <div className="h-10 rounded-2xl w-36 mt-2" style={{ background: "var(--soft)" }} />
-    </div>
+      <div style={{ height: 32, width: "80%", borderRadius: 999, background: "var(--soft)" }} />
+      <div style={{ height: 32, width: "60%", borderRadius: 999, background: "var(--soft)" }} />
+      <div style={{ height: 14, borderRadius: 8, background: "var(--soft)" }} />
+      <div style={{ height: 14, width: "90%", borderRadius: 8, background: "var(--soft)" }} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, padding: "18px 0", borderTop: "1px solid var(--rule)", borderBottom: "1px solid var(--rule)" }}>
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ height: 8, width: "70%", borderRadius: 999, background: "var(--soft)" }} />
+            <div style={{ height: 14, width: "90%", borderRadius: 999, background: "var(--soft)" }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ height: 60, borderRadius: 12, background: "var(--soft)" }} />
+    </GardenPaper>
   );
 }
 
-function TrialCard({ trial }: { trial: Trial }) {
-  const statusStyle = statusColors[trial.status] ?? { bg: "var(--soft)", text: "#9ca3af" };
-  const eligibility = eligibilityConfig[trial.eligibility_match] ?? eligibilityConfig.likely_eligible;
-  const canApply = trial.status === "Recruiting";
+function SkeletonCard() {
+  return (
+    <GardenPaper style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ height: 20, width: 80, borderRadius: 999, background: "var(--soft)" }} />
+        <div style={{ height: 20, width: 100, borderRadius: 999, background: "var(--soft)" }} />
+      </div>
+      <div style={{ height: 18, width: "85%", borderRadius: 999, background: "var(--soft)" }} />
+      <div style={{ height: 10, width: "60%", borderRadius: 999, background: "var(--soft)" }} />
+      <div style={{ height: 40, borderRadius: 10, background: "var(--soft)" }} />
+    </GardenPaper>
+  );
+}
 
+// ── Featured trial card ───────────────────────────────────────────────────────
+
+function FeaturedTrial({ trial }: { trial: Trial }) {
+  const match = matchConfig[trial.eligibility_match] ?? matchConfig.likely_eligible;
+  const sc = statusColor[trial.status] ?? "var(--ink-faded)";
+  const canApply = trial.status === "Recruiting";
   const applyHref = trial.website
     ? trial.website
     : `mailto:${trial.contact}?subject=${encodeURIComponent(`Expression of Interest: ${trial.title}`)}&body=${encodeURIComponent(`Dear Trial Coordinator,\n\nI would like to express my interest in participating in the "${trial.title}" trial.\n\nPlease let me know the next steps.\n\nThank you.`)}`;
 
   return (
-    <div
-      className="rounded-3xl p-6 flex flex-col gap-4"
-      style={{ background: "var(--background)", boxShadow: "0 2px 16px 0 rgba(0,0,0,0.07)" }}
-    >
+    <GardenPaper style={{
+      padding: 36, display: "flex", flexDirection: "column", gap: 18,
+      boxShadow: "0 16px 36px -22px rgba(36,26,20,0.16)",
+    }}>
+      {/* Tags */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <Tag color={match.color}>{match.label} · {trial.condition}</Tag>
+        <Tag color="var(--gold)">{trial.phase}</Tag>
+        <Tag color={sc}>{trial.status.toLowerCase()}</Tag>
+      </div>
+
       {/* Title */}
-      <h2 className="font-semibold text-base leading-snug" style={{ color: "var(--primary)" }}>
-        {trial.title}
-      </h2>
-
-      {/* Badges row */}
-      <div className="flex flex-wrap gap-2">
-        <span className="text-xs font-medium px-2.5 py-0.5 rounded-full" style={{ background: "var(--soft)", color: "var(--accent)" }}>
-          {trial.condition}
-        </span>
-        <span className="text-xs font-medium px-2.5 py-0.5 rounded-full" style={{ background: "var(--soft)", color: "var(--primary)" }}>
-          {trial.phase}
-        </span>
-        <span className="text-xs font-medium px-2.5 py-0.5 rounded-full" style={{ background: statusStyle.bg, color: statusStyle.text }}>
-          {trial.status}
-        </span>
+      <div>
+        <Overline color="var(--poppy-deep)" style={{ display: "block", marginBottom: 10 }}>
+          {trial.sponsor}
+        </Overline>
+        <h2 style={{
+          fontFamily: "'Newsreader', Georgia, serif",
+          fontSize: 34, lineHeight: 1.1, fontWeight: 400,
+          color: "var(--ink)", margin: "0 0 12px", letterSpacing: "-0.018em",
+        }}>
+          {trial.title}
+        </h2>
+        <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 16, color: "var(--ink-soft)", lineHeight: 1.65, margin: 0 }}>
+          {trial.description}
+        </p>
       </div>
 
-      {/* Eligibility banner */}
-      <div
-        className="flex items-start gap-2.5 rounded-xl px-3.5 py-3"
-        style={{ background: eligibility.bg }}
-      >
-        <span className="flex-shrink-0 mt-0.5" style={{ color: eligibility.text }}>
-          {eligibility.icon}
-        </span>
-        <div>
-          <p className="text-xs font-semibold mb-0.5" style={{ color: eligibility.text }}>
-            {eligibility.label}
-          </p>
-          <p className="text-xs leading-relaxed" style={{ color: eligibility.text, opacity: 0.85 }}>
-            {trial.eligibility_reason}
-          </p>
-        </div>
+      {/* Metadata grid */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 14,
+        padding: "18px 0", borderTop: "1px solid var(--rule)", borderBottom: "1px solid var(--rule)",
+      }}>
+        {[
+          ["location",     trial.location],
+          ["phase",        trial.phase],
+          ["status",       trial.status],
+          ["sponsor",      trial.sponsor],
+        ].map(([label, value], i) => (
+          <div key={i}>
+            <Overline style={{ display: "block", marginBottom: 4 }}>{label}</Overline>
+            <div style={{
+              fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+              fontSize: 15, color: "var(--ink)", lineHeight: 1.3,
+            }}>
+              {value}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Sponsor + location */}
-      <div className="flex flex-col gap-1 text-sm text-stone-500">
-        <div className="flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
-            <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
-            <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-          </svg>
-          <span>{trial.sponsor}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
-            <path d="M12 21C12 21 5 13.5 5 8a7 7 0 0114 0c0 5.5-7 13-7 13z" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="12" cy="8" r="2.5" />
-          </svg>
-          <span>{trial.location}</span>
-        </div>
+      {/* Why poppy thinks it fits */}
+      <div style={{
+        padding: "14px 18px", background: "var(--soft)", borderRadius: 12,
+        borderLeft: "2px solid var(--poppy)",
+      }}>
+        <Overline color="var(--poppy-deep)" style={{ display: "block", marginBottom: 8 }}>
+          why poppy thinks it fits
+        </Overline>
+        <p style={{
+          fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+          fontSize: 15.5, color: "var(--ink)", margin: 0, lineHeight: 1.6,
+        }}>
+          {trial.eligibility_reason}
+        </p>
       </div>
-
-      <div style={{ borderTop: "1px solid var(--soft)" }} />
-
-      {/* Description */}
-      <p className="text-sm text-stone-500 leading-relaxed">{trial.description}</p>
 
       {/* Eligibility criteria */}
-      <div className="rounded-xl px-4 py-3 text-sm text-stone-600" style={{ background: "var(--soft)" }}>
-        <span className="font-medium" style={{ color: "var(--primary)" }}>Criteria: </span>
-        {trial.eligibility}
-      </div>
-
-      {/* Footer: contact + apply button */}
-      <div className="flex items-center justify-between gap-3 flex-wrap mt-1">
-        <div className="flex items-center gap-2 text-sm text-stone-400">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-            <polyline points="22,6 12,13 2,6" />
-          </svg>
-          <a href={`mailto:${trial.contact}`} className="hover:underline truncate">{trial.contact}</a>
+      {trial.eligibility && (
+        <div style={{ padding: "12px 16px", background: "var(--soft)", borderRadius: 10 }}>
+          <Overline style={{ display: "block", marginBottom: 6 }}>eligibility criteria</Overline>
+          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14, color: "var(--ink-soft)", margin: 0, lineHeight: 1.6 }}>
+            {trial.eligibility}
+          </p>
         </div>
+      )}
 
+      {/* Actions */}
+      <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginTop: 4 }}>
         {canApply && (
           <a
             href={applyHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-opacity hover:opacity-85 flex-shrink-0"
-            style={{ background: "var(--accent)" }}
+            style={{
+              fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+              fontSize: 15, color: "var(--paper)", background: "var(--poppy)",
+              border: "none", padding: "13px 22px", borderRadius: 999, textDecoration: "none", display: "inline-block",
+            }}
           >
-            Apply Now
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
-            </svg>
+            draft an inquiry letter
+          </a>
+        )}
+        <a
+          href={`mailto:${trial.contact}`}
+          style={{
+            fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+            fontSize: 14, color: "var(--ink-soft)", textDecoration: "none",
+            borderBottom: "1px solid var(--rule)", paddingBottom: 2,
+          }}
+        >
+          {trial.contact}
+        </a>
+      </div>
+    </GardenPaper>
+  );
+}
+
+// ── Secondary trial card ──────────────────────────────────────────────────────
+
+function SecondaryTrial({ trial, color }: { trial: Trial; color: string }) {
+  const match = matchConfig[trial.eligibility_match] ?? matchConfig.likely_eligible;
+  const canApply = trial.status === "Recruiting";
+  const applyHref = trial.website
+    ? trial.website
+    : `mailto:${trial.contact}?subject=${encodeURIComponent(`Expression of Interest: ${trial.title}`)}&body=${encodeURIComponent(`Dear Trial Coordinator,\n\nI would like to express my interest in participating in the "${trial.title}" trial.\n\nPlease let me know the next steps.\n\nThank you.`)}`;
+
+  return (
+    <GardenPaper style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <Tag color={match.color}>{match.label}</Tag>
+        <Overline>{trial.phase} · {trial.status.toLowerCase()}</Overline>
+      </div>
+      <h3 style={{
+        fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+        fontSize: 20, fontWeight: 400, color: "var(--ink)", margin: 0, lineHeight: 1.25,
+      }}>
+        {trial.title}
+      </h3>
+      <Overline>{trial.location}</Overline>
+      <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.6, margin: 0 }}>
+        {trial.eligibility_reason}
+      </p>
+      <div style={{ marginTop: "auto", paddingTop: 12, borderTop: "1px dashed var(--rule)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        {canApply ? (
+          <a
+            href={applyHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 13, color, textDecoration: "none" }}
+          >
+            learn more ›
+          </a>
+        ) : (
+          <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 13, color: "var(--ink-faded)" }}>
+            {trial.status.toLowerCase()}
+          </span>
+        )}
+        {trial.contact && (
+          <a href={`mailto:${trial.contact}`} style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, letterSpacing: "0.1em", color: "var(--ink-faded)", textDecoration: "none" }}>
+            contact
           </a>
         )}
       </div>
-    </div>
+    </GardenPaper>
   );
 }
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function TrialsPage() {
   const { conditions, conditionsLoaded, documents, documentsLoaded, setPageContext, credits, setCredits } = usePoppyContext();
@@ -205,7 +314,6 @@ export default function TrialsPage() {
   const [error, setError] = useState("");
 
   const hasContext = conditions.length > 0 || documents.length > 0;
-
   const conditionsKey = conditions.slice().sort().join("|");
   const documentsKey = documents.map((d) => d.id).sort().join("|");
 
@@ -215,10 +323,7 @@ export default function TrialsPage() {
     setTrials([]);
     setError("");
 
-    if (!hasContext) {
-      setLoading(false);
-      return;
-    }
+    if (!hasContext) { setLoading(false); return; }
 
     setLoading(true);
     fetch("/api/trials", {
@@ -271,43 +376,44 @@ export default function TrialsPage() {
 
   if (!loading && conditionsLoaded && documentsLoaded && !hasContext) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-14 text-center">
-        <div
-          className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6"
-          style={{ background: "var(--soft)", color: "var(--accent)" }}
-        >
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-          </svg>
-        </div>
-        <h1 className="text-3xl font-semibold tracking-tight mb-3" style={{ color: "var(--primary)" }}>
-          Trials & Recent Research
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "56px 24px", textAlign: "center" }}>
+        <h1 style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 36, fontWeight: 400, color: "var(--ink)", margin: "0 0 16px" }}>
+          three open <em>doors.</em>
         </h1>
-        <p className="text-stone-500 leading-relaxed">
+        <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 17, color: "var(--ink-soft)", lineHeight: 1.65, marginBottom: 28 }}>
           Add your conditions in your profile and Poppy will surface relevant clinical trials for you.
         </p>
-        <a
-          href="/profile"
-          className="inline-block mt-6 px-6 py-2.5 rounded-xl text-sm font-medium text-white transition-opacity hover:opacity-90"
-          style={{ background: "var(--accent)" }}
-        >
+        <a href="/profile" style={{ padding: "12px 22px", borderRadius: 999, fontSize: 15, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", background: "var(--ink)", color: "var(--paper)", textDecoration: "none" }}>
           Go to Profile
         </a>
       </div>
     );
   }
 
+  const featured = trials[0];
+  const others = trials.slice(1);
+  const SECONDARY_COLORS = ["var(--gold)", "var(--sage)", "#C96B7A", "var(--accent)"];
+
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10">
+    <div style={{ maxWidth: 960, margin: "0 auto", padding: "40px 24px 80px" }}>
       <GeneralContentBanner />
-      <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+
+      {/* Header */}
+      <div style={{ marginBottom: 36, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight mb-2" style={{ color: "var(--primary)" }}>
-            Clinical Trials
+          <Overline color="var(--poppy)" style={{ display: "block", marginBottom: 10 }}>
+            clinical trials · {trials.length > 0 ? `${trials.length} may fit` : "searching"} · all global
+          </Overline>
+          <h1 style={{
+            fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+            fontSize: 42, fontWeight: 400, color: "var(--ink)", margin: 0,
+            letterSpacing: "-0.02em", lineHeight: 1.1,
+          }}>
+            {trials.length > 0 ? `${trials.length > 1 ? `${trials.length} open` : "an open"} ` : ""}
+            <em>door{trials.length !== 1 ? "s" : ""}.</em>
           </h1>
-          <p className="text-stone-500 text-sm">
-            Trials matched to your conditions: {conditions.join(", ")}
+          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 17, color: "var(--ink-soft)", lineHeight: 1.6, margin: "12px 0 0", maxWidth: 560 }}>
+            Most trial finders are noisy. These were chosen by Poppy because your particular case appears to match the inclusion criteria.
           </p>
         </div>
         {!loading && hasContext && (
@@ -315,18 +421,40 @@ export default function TrialsPage() {
         )}
       </div>
 
-      {error && (
-        <p className="text-red-500 text-sm mb-4">{error}</p>
-      )}
-
+      {error && <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 15, color: "#dc2626", marginBottom: 16 }}>{error}</p>}
       {loading && <AILoadingMessage messages={TRIALS_MESSAGES} />}
 
-      <div className="flex flex-col gap-5">
-        {loading
-          ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-          : trials.map((t, i) => <TrialCard key={i} trial={t} />)
-        }
-      </div>
+      {/* Featured trial */}
+      {loading ? (
+        <SkeletonFeatured />
+      ) : featured ? (
+        <div style={{ marginBottom: 44 }}>
+          <FeaturedTrial trial={featured} />
+        </div>
+      ) : null}
+
+      {/* Other trials */}
+      {!loading && others.length > 0 && (
+        <div>
+          <Overline style={{ display: "block", marginBottom: 14 }}>
+            {others.length === 1 ? "one more open door" : `${others.length} more open doors`}
+          </Overline>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+            {others.map((t, i) => (
+              <SecondaryTrial key={i} trial={t} color={SECONDARY_COLORS[i % SECONDARY_COLORS.length]} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loading && (
+        <div>
+          <div style={{ height: 10, width: 160, borderRadius: 999, background: "var(--soft)", marginBottom: 14 }} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+            {Array.from({ length: 2 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

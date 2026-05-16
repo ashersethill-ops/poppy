@@ -77,24 +77,58 @@ type SavedSpecialist = {
   };
 };
 
-// ── Colours ───────────────────────────────────────────────────────────────────
+// ── Garden atoms ──────────────────────────────────────────────────────────────
 
-const timelineColors: Record<string, string> = {
-  diagnosis: "#f87171",
-  treatment: "var(--accent)",
-  test:      "#a78bfa",
-  milestone: "#34d399",
-};
+const Overline = ({
+  children,
+  color,
+  style,
+}: {
+  children: React.ReactNode;
+  color?: string;
+  style?: React.CSSProperties;
+}) => (
+  <span
+    style={{
+      fontFamily: "'Geist Mono', ui-monospace, monospace",
+      fontSize: 10,
+      letterSpacing: "0.14em",
+      textTransform: "uppercase" as const,
+      color: color ?? "var(--ink-faded)",
+      ...style,
+    }}
+  >
+    {children}
+  </span>
+);
 
-const treatmentBg: Record<string, string> = {
-  medication: "#eff6ff",
-  therapy:    "#f0fdf4",
-  procedure:  "#faf5ff",
-};
-const treatmentText: Record<string, string> = {
-  medication: "#1d4ed8",
-  therapy:    "#15803d",
-  procedure:  "#7c3aed",
+const GardenPaper = ({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) => (
+  <div
+    style={{
+      background: "var(--paper)",
+      borderRadius: 18,
+      border: "1px solid var(--rule)",
+      padding: 28,
+      ...style,
+    }}
+  >
+    {children}
+  </div>
+);
+
+// ── Timeline event colours ────────────────────────────────────────────────────
+
+const timelineDotColor: Record<string, string> = {
+  diagnosis: "var(--poppy)",
+  treatment: "var(--sage)",
+  test:      "var(--gold)",
+  milestone: "#C96B7A",
 };
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
@@ -105,11 +139,8 @@ function SkeletonBlock({ h = "h-4", w = "w-full" }: { h?: string; w?: string }) 
 
 function SectionSkeleton() {
   return (
-    <div
-      className="rounded-3xl p-6 flex flex-col gap-4"
-      style={{ background: "var(--background)", boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}
-    >
-      <SkeletonBlock h="h-5" w="w-1/3" />
+    <div className="rounded-3xl p-6 flex flex-col gap-4" style={{ background: "var(--paper)", border: "1px solid var(--rule)" }}>
+      <SkeletonBlock h="h-4" w="w-1/3" />
       <SkeletonBlock h="h-3" />
       <SkeletonBlock h="h-3" w="w-5/6" />
       <SkeletonBlock h="h-3" w="w-4/6" />
@@ -117,93 +148,94 @@ function SectionSkeleton() {
   );
 }
 
-// ── Section wrapper ────────────────────────────────────────────────────────────
-
-function Section({
-  icon,
-  title,
-  children,
-  action,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div
-      className="rounded-3xl p-6 flex flex-col gap-5"
-      style={{ background: "var(--background)", boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <span
-            className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "var(--soft)", color: "var(--accent)" }}
-          >
-            {icon}
-          </span>
-          <h2 className="font-semibold text-base" style={{ color: "var(--primary)" }}>{title}</h2>
-        </div>
-        {action}
-      </div>
-      {children}
-    </div>
-  );
-}
-
 // ── Timeline ──────────────────────────────────────────────────────────────────
 
 function Timeline({ events }: { events: TimelineEvent[] }) {
-  if (events.length === 0) return <p className="text-sm text-stone-400">No timeline data available from your documents.</p>;
+  if (events.length === 0) {
+    return (
+      <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 16, color: "var(--ink-faded)" }}>
+        No timeline data available from your documents.
+      </p>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-0">
-      {events.map((e, i) => (
-        <div key={i} className="flex gap-4">
-          {/* Dot + line */}
-          <div className="flex flex-col items-center">
-            <div
-              className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5"
-              style={{ background: timelineColors[e.type] ?? "var(--accent)" }}
-            />
-            {i < events.length - 1 && (
-              <div className="w-px flex-1 mt-1" style={{ background: "var(--soft)", minHeight: "24px" }} />
-            )}
-          </div>
-          {/* Content */}
-          <div className="pb-5 min-w-0">
-            <p className="text-xs text-stone-400 mb-0.5">{e.date}</p>
-            <p className="text-sm leading-snug" style={{ color: "var(--primary)" }}>{e.event}</p>
-          </div>
-        </div>
-      ))}
+    <div style={{ position: "relative" }}>
+      {/* Dashed spine */}
+      <div style={{
+        position: "absolute", left: 11, top: 8, bottom: 8, width: 1,
+        borderLeft: "1px dashed var(--rule)",
+      }} />
+
+      {events.map((e, i) => {
+        const dotColor = timelineDotColor[e.type] ?? "var(--accent)";
+        return (
+          <article key={i} style={{ position: "relative", paddingLeft: 44, marginBottom: 20 }}>
+            {/* Dot */}
+            <div style={{
+              position: "absolute", left: 4, top: 22,
+              width: 16, height: 16, borderRadius: "50%",
+              background: dotColor, border: "3px solid var(--background)",
+              boxShadow: `0 0 0 1px ${dotColor}55`,
+            }} />
+            <GardenPaper style={{ padding: "20px 24px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 6, flexWrap: "wrap" }}>
+                <Overline color={dotColor}>{e.date}</Overline>
+                <Overline>{e.type}</Overline>
+              </div>
+              <p style={{
+                fontFamily: "'Newsreader', Georgia, serif",
+                fontSize: 15.5, lineHeight: 1.65, color: "var(--ink)", margin: 0,
+              }}>
+                {e.event}
+              </p>
+            </GardenPaper>
+          </article>
+        );
+      })}
+
+      {/* Gentle ending */}
+      <div style={{ paddingLeft: 44, position: "relative", marginTop: 8 }}>
+        <div style={{
+          position: "absolute", left: 4, top: 10, width: 16, height: 16,
+          borderRadius: "50%", background: "transparent", border: "1.5px dashed var(--rule)",
+        }} />
+        <p style={{
+          fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+          fontSize: 18, color: "var(--ink-faded)", margin: 0,
+        }}>
+          the next chapter is unwritten.
+        </p>
+      </div>
     </div>
   );
 }
 
-// ── Diagnosis cards ────────────────────────────────────────────────────────────
+// ── Diagnoses ─────────────────────────────────────────────────────────────────
 
 function DiagnosisList({ diagnoses }: { diagnoses: Diagnosis[] }) {
-  if (diagnoses.length === 0) return <p className="text-sm text-stone-400">No diagnosis details available.</p>;
+  if (diagnoses.length === 0) {
+    return (
+      <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 15, color: "var(--ink-faded)" }}>
+        No diagnosis details available.
+      </p>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {diagnoses.map((d, i) => (
         <div key={i}>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span
-              className="text-xs font-medium px-2.5 py-0.5 rounded-full"
-              style={{ background: "var(--soft)", color: "var(--accent)" }}
-            >
-              {d.condition}
-            </span>
-            {d.diagnosedDate && (
-              <span className="text-xs text-stone-400">since {d.diagnosedDate}</span>
-            )}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+            <Overline color="var(--poppy)">{d.condition}</Overline>
+            {d.diagnosedDate && <Overline>since {d.diagnosedDate}</Overline>}
           </div>
-          <p className="text-sm text-stone-500 leading-relaxed">{d.description}</p>
-          {i < diagnoses.length - 1 && <div className="mt-4" style={{ borderTop: "1px solid var(--soft)" }} />}
+          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 15.5, lineHeight: 1.65, color: "var(--ink-soft)", margin: 0 }}>
+            {d.description}
+          </p>
+          {i < diagnoses.length - 1 && (
+            <div style={{ marginTop: 18, borderTop: "1px dashed var(--rule)" }} />
+          )}
         </div>
       ))}
     </div>
@@ -212,32 +244,42 @@ function DiagnosisList({ diagnoses }: { diagnoses: Diagnosis[] }) {
 
 // ── Treatments ────────────────────────────────────────────────────────────────
 
+const treatmentColor: Record<string, string> = {
+  medication: "var(--poppy)",
+  therapy:    "var(--sage)",
+  procedure:  "var(--gold)",
+};
+
 function TreatmentList({ treatments }: { treatments: Treatment[] }) {
-  if (treatments.length === 0) return <p className="text-sm text-stone-400">No treatment data found in your documents.</p>;
+  if (treatments.length === 0) {
+    return (
+      <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 15, color: "var(--ink-faded)" }}>
+        No treatment data found in your documents.
+      </p>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-3">
-      {treatments.map((t, i) => (
-        <div key={i} className="flex items-start gap-3">
-          <span
-            className="text-xs font-medium px-2 py-0.5 rounded-md flex-shrink-0 mt-0.5 capitalize"
-            style={{
-              background: treatmentBg[t.type] ?? "var(--soft)",
-              color: treatmentText[t.type] ?? "var(--primary)",
-            }}
-          >
-            {t.type}
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-medium leading-snug" style={{ color: "var(--primary)" }}>
-              {t.name}{t.dose ? ` ${t.dose}` : ""}
-            </p>
-            <p className="text-xs text-stone-400 mt-0.5">
-              {[t.frequency, t.since ? `since ${t.since}` : ""].filter(Boolean).join(" · ")}
-            </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {treatments.map((t, i) => {
+        const c = treatmentColor[t.type] ?? "var(--ink-faded)";
+        return (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+            <Overline color={c} style={{ flexShrink: 0, marginTop: 2 }}>{t.type}</Overline>
+            <div>
+              <p style={{
+                fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+                fontSize: 15.5, fontWeight: 400, color: "var(--ink)", margin: "0 0 2px",
+              }}>
+                {t.name}{t.dose ? ` ${t.dose}` : ""}
+              </p>
+              <p style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, letterSpacing: "0.12em", color: "var(--ink-faded)", margin: 0, textTransform: "uppercase" }}>
+                {[t.frequency, t.since ? `since ${t.since}` : ""].filter(Boolean).join(" · ")}
+              </p>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -246,25 +288,32 @@ function TreatmentList({ treatments }: { treatments: Treatment[] }) {
 
 function PhysicianList({ physicians }: { physicians: Physician[] }) {
   if (physicians.length === 0) {
-    return <p className="text-sm text-stone-400">No treating physician details found in your documents.</p>;
+    return (
+      <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 15, color: "var(--ink-faded)" }}>
+        No treating physician details found in your documents.
+      </p>
+    );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {physicians.map((p, i) => (
         <div key={i}>
-          <p className="text-sm font-semibold" style={{ color: "var(--primary)" }}>{p.name}</p>
-          <p className="text-xs mb-1.5" style={{ color: "var(--accent)" }}>{p.specialty}</p>
-          {p.hospital && <p className="text-xs text-stone-500">{p.hospital}</p>}
-          <div className="flex flex-col gap-1 mt-1.5">
-            {p.phone && (
-              <p className="text-xs text-stone-400">{p.phone}</p>
-            )}
+          <p style={{
+            fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+            fontSize: 18, fontWeight: 400, color: "var(--ink)", margin: "0 0 2px",
+          }}>
+            {p.name}
+          </p>
+          <Overline color="var(--accent)" style={{ display: "block", marginBottom: 6 }}>{p.specialty}</Overline>
+          {p.hospital && <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14, color: "var(--ink-soft)", margin: "0 0 4px" }}>{p.hospital}</p>}
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {p.phone && <p style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, color: "var(--ink-faded)", margin: 0, letterSpacing: "0.1em" }}>{p.phone}</p>}
             {p.email && (
-              <a href={`mailto:${p.email}`} className="text-xs text-stone-400 hover:underline truncate">{p.email}</a>
+              <a href={`mailto:${p.email}`} style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, color: "var(--ink-faded)", letterSpacing: "0.1em" }}>{p.email}</a>
             )}
           </div>
-          {i < physicians.length - 1 && <div className="mt-3" style={{ borderTop: "1px solid var(--soft)" }} />}
+          {i < physicians.length - 1 && <div style={{ marginTop: 16, borderTop: "1px dashed var(--rule)" }} />}
         </div>
       ))}
     </div>
@@ -276,28 +325,22 @@ function PhysicianList({ physicians }: { physicians: Physician[] }) {
 function ShortlistSection({ saved }: { saved: SavedSpecialist[] }) {
   if (saved.length === 0) {
     return (
-      <p className="text-sm text-stone-400">
+      <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 15, color: "var(--ink-faded)" }}>
         No specialists shortlisted yet.{" "}
-        <a href="/specialist" className="hover:underline" style={{ color: "var(--accent)" }}>
-          Browse the directory →
-        </a>
+        <a href="/specialist" style={{ color: "var(--poppy)", textDecoration: "none", borderBottom: "1px solid var(--poppy)" }}>Browse the directory →</a>
       </p>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {saved.map((s, i) => (
         <div key={i}>
-          <p className="text-sm font-semibold" style={{ color: "var(--primary)" }}>{s.specialist.name}</p>
-          <p className="text-xs mb-0.5" style={{ color: "var(--accent)" }}>{s.specialist.specialty}</p>
-          <p className="text-xs text-stone-500">{s.specialist.subspecialty}</p>
-          <p className="text-xs text-stone-400 mt-1">{s.specialist.hospital}, {s.specialist.city}, {s.specialist.country}</p>
-          <div className="flex flex-col gap-0.5 mt-1.5">
-            <a href={`mailto:${s.specialist.email}`} className="text-xs text-stone-400 hover:underline truncate">{s.specialist.email}</a>
-            <p className="text-xs text-stone-400">{s.specialist.phone}</p>
-          </div>
-          {i < saved.length - 1 && <div className="mt-3" style={{ borderTop: "1px solid var(--soft)" }} />}
+          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 18, color: "var(--ink)", margin: "0 0 2px" }}>{s.specialist.name}</p>
+          <Overline color="var(--accent)" style={{ display: "block", marginBottom: 4 }}>{s.specialist.specialty}</Overline>
+          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14, color: "var(--ink-soft)", margin: "0 0 4px" }}>{s.specialist.subspecialty}</p>
+          <p style={{ fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, color: "var(--ink-faded)", letterSpacing: "0.1em" }}>{s.specialist.hospital}, {s.specialist.city}, {s.specialist.country}</p>
+          {i < saved.length - 1 && <div style={{ marginTop: 16, borderTop: "1px dashed var(--rule)" }} />}
         </div>
       ))}
     </div>
@@ -307,24 +350,28 @@ function ShortlistSection({ saved }: { saved: SavedSpecialist[] }) {
 // ── Research ──────────────────────────────────────────────────────────────────
 
 function ResearchList({ research }: { research: Research[] }) {
-  if (research.length === 0) return <p className="text-sm text-stone-400">No research headlines available.</p>;
+  if (research.length === 0) {
+    return (
+      <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 15, color: "var(--ink-faded)" }}>No research headlines available.</p>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {research.map((r, i) => (
-        <div key={i} className="flex gap-3 items-start">
-          <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold"
-            style={{ background: "var(--soft)", color: "var(--accent)" }}
-          >
-            {i + 1}
+        <div key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+            background: "var(--soft)", display: "flex", alignItems: "center", justifyContent: "center",
+            fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 11,
+            color: "var(--ink-faded)", fontWeight: 500,
+          }}>
+            {String(i + 1).padStart(2, "0")}
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium leading-snug mb-1" style={{ color: "var(--primary)" }}>
-              {r.title}
-            </p>
-            <p className="text-xs text-stone-400">{r.source} · {r.year}</p>
-            <p className="text-xs text-stone-500 mt-1 leading-relaxed">{r.relevance}</p>
+          <div>
+            <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 16, color: "var(--ink)", margin: "0 0 4px" }}>{r.title}</p>
+            <Overline style={{ display: "block", marginBottom: 4 }}>{r.source} · {r.year}</Overline>
+            <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 14, color: "var(--ink-soft)", margin: 0, lineHeight: 1.6 }}>{r.relevance}</p>
           </div>
         </div>
       ))}
@@ -332,40 +379,39 @@ function ResearchList({ research }: { research: Research[] }) {
   );
 }
 
-// ── Icons ─────────────────────────────────────────────────────────────────────
+// ── Garden section wrapper ─────────────────────────────────────────────────────
 
-const icons = {
-  timeline: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-    </svg>
-  ),
-  diagnosis: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-    </svg>
-  ),
-  treatments: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  ),
-  physicians: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
-    </svg>
-  ),
-  specialists: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
-    </svg>
-  ),
-  research: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-    </svg>
-  ),
-};
+function GardenSection({
+  overline,
+  title,
+  children,
+  action,
+}: {
+  overline: string;
+  title: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <GardenPaper>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 20 }}>
+        <div>
+          <Overline style={{ display: "block", marginBottom: 6 }}>{overline}</Overline>
+          <h2 style={{
+            fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+            fontSize: 22, fontWeight: 400, color: "var(--ink)", margin: 0, letterSpacing: "-0.01em",
+          }}>
+            {title}
+          </h2>
+        </div>
+        {action}
+      </div>
+      <div style={{ borderTop: "1px dashed var(--rule)", paddingTop: 20 }}>
+        {children}
+      </div>
+    </GardenPaper>
+  );
+}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -378,15 +424,11 @@ export default function OverviewPage() {
   const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  // Story name derived from context — no extra profile fetch needed
   const storyName = displayName;
-
   const hasContext = conditions.length > 0 || documents.length > 0;
-
   const conditionsKey = conditions.slice().sort().join("|");
   const documentsKey = documents.map((d) => d.id).sort().join("|");
 
-  // Load saved specialists
   useEffect(() => {
     fetch("/api/saved-specialists")
       .then((r) => r.json())
@@ -394,14 +436,9 @@ export default function OverviewPage() {
       .catch(() => {});
   }, []);
 
-  // Load overview data
   useEffect(() => {
     if (!conditionsLoaded || !documentsLoaded) return;
-
-    if (!hasContext) {
-      setLoading(false);
-      return;
-    }
+    if (!hasContext) { setLoading(false); return; }
 
     setLoading(true);
     fetch("/api/overview", {
@@ -411,7 +448,7 @@ export default function OverviewPage() {
     })
       .then((r) => r.json())
       .then((d) => {
-        if (d.error) { setError("Could not load your health overview."); }
+        if (d.error) setError("Could not load your health overview.");
         else { setData(d); setCachedAt(d.cachedAt ?? null); }
       })
       .catch(() => setError("Could not load your health overview."))
@@ -443,30 +480,30 @@ export default function OverviewPage() {
     }
   }
 
-  // No context state
   if (!loading && conditionsLoaded && documentsLoaded && !hasContext) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-14 text-center">
-        <div
-          className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6"
-          style={{ background: "var(--soft)", color: "var(--accent)" }}
-        >
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "56px 24px", textAlign: "center" }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: 20, background: "var(--soft)",
+          display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px",
+          color: "var(--accent)",
+        }}>
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight mb-3" style={{ color: "var(--primary)" }}>
-          {storyName ? `${storyName}'s Story` : "Health Overview"}
+        <h1 style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 36, fontWeight: 400, color: "var(--ink)", margin: "0 0 16px", letterSpacing: "-0.02em" }}>
+          {storyName ? `${storyName}'s story.` : "your story."}
         </h1>
-        <p className="text-stone-500 leading-relaxed mb-6">
+        <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 17, color: "var(--ink-soft)", lineHeight: 1.65, marginBottom: 28 }}>
           Add your conditions or upload medical documents and Poppy will build your personalised health summary.
         </p>
-        <div className="flex gap-3 justify-center flex-wrap">
-          <a href="/profile" className="inline-block px-6 py-2.5 rounded-xl text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ background: "var(--accent)" }}>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <a href="/profile" style={{ padding: "12px 22px", borderRadius: 999, fontSize: 15, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", background: "var(--ink)", color: "var(--paper)", textDecoration: "none" }}>
             Add Conditions
           </a>
-          <a href="/documents" className="inline-block px-6 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-80" style={{ background: "var(--soft)", color: "var(--primary)" }}>
+          <a href="/documents" style={{ padding: "12px 22px", borderRadius: 999, fontSize: 15, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", background: "var(--soft)", color: "var(--ink)", textDecoration: "none" }}>
             Upload Documents
           </a>
         </div>
@@ -475,108 +512,111 @@ export default function OverviewPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px 80px" }}>
       <GeneralContentBanner />
-      {/* Header */}
-      <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+
+      {/* Page header */}
+      <div style={{ marginBottom: 36, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
-        <h1 className="text-3xl font-semibold tracking-tight mb-2" style={{ color: "var(--primary)" }}>
-          {storyName ? `${storyName}'s Story` : "Health Overview"}
-        </h1>
-        {conditions.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {conditions.map((c) => (
-              <span
-                key={c}
-                className="text-xs font-medium px-3 py-1 rounded-full"
-                style={{ background: "var(--soft)", color: "var(--accent)" }}
-              >
-                {c}
-              </span>
-            ))}
-          </div>
-        )}
+          <Overline style={{ display: "block", marginBottom: 10 }}>
+            your story
+            {conditions.length > 0 ? ` · ${conditions.join(" · ")}` : ""}
+          </Overline>
+          <h1 style={{
+            fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic",
+            fontSize: 42, fontWeight: 400, color: "var(--ink)", margin: 0,
+            letterSpacing: "-0.02em", lineHeight: 1.1,
+          }}>
+            {storyName ? `${storyName}'s story, ` : "your story, "}
+            <em style={{ fontStyle: "italic", opacity: 0.7 }}>so far.</em>
+          </h1>
+          {conditions.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+              {conditions.map((c) => (
+                <span key={c} style={{
+                  fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10,
+                  letterSpacing: "0.12em", textTransform: "uppercase",
+                  padding: "4px 12px", borderRadius: 999,
+                  background: `var(--poppy)1f`, color: "var(--poppy)",
+                }}>
+                  {c}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         {!loading && hasContext && (
           <UpdateButton onClick={updateOverview} loading={updating} credits={credits} cachedAt={cachedAt} />
         )}
       </div>
 
-      {error && <p className="text-red-500 text-sm mb-6">{error}</p>}
+      {error && (
+        <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 15, color: "#dc2626", marginBottom: 20 }}>{error}</p>
+      )}
 
       {loading && <AILoadingMessage messages={OVERVIEW_MESSAGES} />}
 
-      <div className="flex flex-col gap-5">
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         {/* Timeline — full width */}
-        {loading ? (
-          <SectionSkeleton />
-        ) : (
-          <Section
-            icon={icons.timeline}
-            title="Timeline"
+        {loading ? <SectionSkeleton /> : (
+          <GardenSection
+            overline="timeline"
+            title="your journey, chapter by chapter."
             action={
-              <span className="text-xs text-stone-400">
-                {data?.timeline?.[0]?.date && `${data.timeline[0].date} → Today`}
-              </span>
+              data?.timeline?.[0]?.date ? (
+                <Overline style={{ flexShrink: 0 }}>{data.timeline[0].date} → now</Overline>
+              ) : undefined
             }
           >
             <Timeline events={data?.timeline ?? []} />
-          </Section>
+          </GardenSection>
         )}
 
-        {/* 2-column row: Diagnoses + Treatments */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* 2-col: Diagnoses + Treatments */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 20 }}>
           {loading ? (
-            <>
-              <SectionSkeleton />
-              <SectionSkeleton />
-            </>
+            <><SectionSkeleton /><SectionSkeleton /></>
           ) : (
             <>
-              <Section icon={icons.diagnosis} title="Diagnoses">
+              <GardenSection overline="diagnoses" title="what the documents say.">
                 <DiagnosisList diagnoses={data?.diagnoses ?? []} />
-              </Section>
-              <Section icon={icons.treatments} title="Current Treatments & Medications">
+              </GardenSection>
+              <GardenSection overline="current treatments" title="how you are being cared for.">
                 <TreatmentList treatments={data?.treatments ?? []} />
-              </Section>
+              </GardenSection>
             </>
           )}
         </div>
 
-        {/* 2-column row: Physicians + Shortlisted Specialists */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* 2-col: Physicians + Shortlisted */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 20 }}>
           {loading ? (
-            <>
-              <SectionSkeleton />
-              <SectionSkeleton />
-            </>
+            <><SectionSkeleton /><SectionSkeleton /></>
           ) : (
             <>
-              <Section icon={icons.physicians} title="Treating Physicians">
+              <GardenSection overline="your doctors" title="the people in your care.">
                 <PhysicianList physicians={data?.physicians ?? []} />
-              </Section>
-              <Section
-                icon={icons.specialists}
-                title="Shortlisted Specialists"
+              </GardenSection>
+              <GardenSection
+                overline="shortlisted specialists"
+                title="those worth knowing."
                 action={
-                  <a href="/specialist" className="text-xs hover:underline" style={{ color: "var(--accent)" }}>
-                    Browse →
+                  <a href="/specialist" style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 14, color: "var(--poppy)", textDecoration: "none", borderBottom: "1px solid var(--poppy)", paddingBottom: 1 }}>
+                    browse →
                   </a>
                 }
               >
                 <ShortlistSection saved={savedSpecialists} />
-              </Section>
+              </GardenSection>
             </>
           )}
         </div>
 
         {/* Research — full width */}
-        {loading ? (
-          <SectionSkeleton />
-        ) : (
-          <Section icon={icons.research} title="Relevant Research & Articles">
+        {loading ? <SectionSkeleton /> : (
+          <GardenSection overline="research" title="what the science says.">
             <ResearchList research={data?.research ?? []} />
-          </Section>
+          </GardenSection>
         )}
       </div>
     </div>
