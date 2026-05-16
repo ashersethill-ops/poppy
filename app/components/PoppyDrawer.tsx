@@ -89,7 +89,7 @@ export default function PoppyDrawer() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-7 right-7 z-50 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+          className="fixed bottom-7 right-7 z-50 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 poppy-fab"
           style={{
             width: 60, height: 60, borderRadius: "50%",
             background: "var(--background)", border: "1px solid var(--rule)",
@@ -98,14 +98,30 @@ export default function PoppyDrawer() {
           }}
           aria-label="Ask Poppy"
         >
-          {/* Pulsing ring */}
-          <span style={{
-            position: "absolute", inset: -6, borderRadius: "50%",
-            border: "1.5px solid var(--poppy)", opacity: 0.28, pointerEvents: "none",
-          }} />
+          {/* Animated pulse ring */}
+          <span className="poppy-pulse-ring" />
           <PoppyIcon size={34} />
         </button>
       )}
+
+      <style>{`
+        @keyframes poppyPulse {
+          0%   { transform: scale(1);    opacity: 0.55; }
+          60%  { transform: scale(1.55); opacity: 0; }
+          100% { transform: scale(1.55); opacity: 0; }
+        }
+        @keyframes poppyGlow {
+          0%, 100% { box-shadow: 0 14px 28px -10px rgba(36,26,20,0.28), 0 0 0 1px rgba(217,84,43,0.10); }
+          50%       { box-shadow: 0 14px 28px -10px rgba(36,26,20,0.28), 0 0 0 1px rgba(217,84,43,0.10), 0 0 18px 4px rgba(217,84,43,0.22); }
+        }
+        .poppy-fab       { animation: poppyGlow 2.8s ease-in-out infinite; }
+        .poppy-pulse-ring {
+          position: absolute; inset: -7px; border-radius: 50%;
+          border: 2px solid var(--poppy);
+          animation: poppyPulse 2.8s ease-out infinite;
+          pointer-events: none;
+        }
+      `}</style>
 
       {/* Drawer */}
       <div
