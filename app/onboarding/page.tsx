@@ -134,6 +134,7 @@ export default function OnboardingPage() {
   const [inferNotice, setInferNotice] = useState<"found" | "none" | null>(null);
   const [inferredPatientName, setInferredPatientName] = useState<string | null>(null);
   const [saving, setSaving]           = useState(false);
+  const [saveError, setSaveError]     = useState("");
   const [selectedRole, setSelectedRole] = useState<"patient" | "family" | "nonFamily" | null>(null);
   const [patientNameInput, setPatientNameInput] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -302,13 +303,14 @@ export default function OnboardingPage() {
     setScreen("conditions");
   }
 
-  // ── Final save: persist conditions + role + location + onboarding_completed ─
+  // ── Final save: persist conditions + role + onboarding_completed ────────────
   async function finishOnboarding(
     conditions: string[],
     roleData: { is_custodian: boolean; patient_name?: string },
     loc?: { text: string; data: { lat: number; lng: number } | null }
   ) {
     setSaving(true);
+    setSaveError("");
     try {
       // PROFILE WRITE — triggered by: user clicking "Continue →" on the role screen.
       // The only write in the onboarding flow.
@@ -324,16 +326,25 @@ export default function OnboardingPage() {
           ...(loc?.data ? { location_lat: loc.data.lat, location_lng: loc.data.lng } : {}),
         }),
       });
+
       if (!res.ok) {
-        const { error } = await res.json().catch(() => ({ error: "Unknown error" }));
-        console.error("[Poppy] Profile save failed during onboarding:", error);
-      } else {
-        console.log("[Poppy] Onboarding save succeeded — location:", loc?.text ?? "(skipped)");
+        const body = await res.json().catch(() => ({ error: "Unknown error" }));
+        console.error("[Poppy] Profile save failed during onboarding:", body.error);
+        // Do NOT advance — let the user retry so onboarding_completed is persisted.
+        setSaveError("Something went wrong saving your profile. Please try again.");
+        setSaving(false);
+        return;
       }
+
+      console.log("[Poppy] Onboarding save succeeded.");
     } catch (err) {
       console.error("[Poppy] Network error during onboarding profile save:", err);
+      setSaveError("Network error. Please check your connection and try again.");
+      setSaving(false);
+      return;
     }
-    // Update in-memory context immediately so dashboard shows correct names
+
+    // Only reach here on success — update in-memory context then advance.
     setContextConditions(conditions);
     setOnboardingCompleted(true);
     setContextIsCustodian(roleData.is_custodian);
@@ -671,6 +682,9 @@ export default function OnboardingPage() {
                           }}
                         />
                       </div>
+                      {saveError && (
+                        <p className="text-sm" style={{ color: "#dc2626" }}>{saveError}</p>
+                      )}
                       <button
                         onClick={() => {
                           const roleData = {
@@ -679,11 +693,11 @@ export default function OnboardingPage() {
                           };
                           finishOnboarding(confirmedConditions, roleData);
                         }}
-                        disabled={!patientNameInput.trim()}
+                        disabled={!patientNameInput.trim() || saving}
                         className="self-start px-7 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
                         style={{ background: "var(--accent)" }}
                       >
-                        Continue →
+                        {saving ? "Saving…" : "Continue →"}
                       </button>
                     </div>
                   )}
