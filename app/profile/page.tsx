@@ -33,12 +33,12 @@ export default function ProfilePage() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState("");
-  // Seed from context immediately so the correct role shows without waiting for API
+  // Pre-seeded from context for an instant first render; overwritten by the API
+  // fetch in load() below — context values are NOT the final source of truth here.
   const [isCustodian, setIsCustodian] = useState(ctxIsCustodian);
   const [patientName, setPatientName] = useState(ctxPatientName ?? "");
   const [dob, setDob] = useState("");
   const [phone, setPhone] = useState("");
-  // Seed immediately from context so conditions appear without waiting for API
   const [conditions, setConditions] = useState<string[]>(contextConditions);
   const [location, setLocation] = useState("");
   const [locating, setLocating] = useState(false);
@@ -48,19 +48,14 @@ export default function ProfilePage() {
   // null | "soft" (keep docs) | "hard" (delete all)
   const [resetMode, setResetMode] = useState<null | "soft" | "hard">(null);
   const [resetting, setResetting] = useState(false);
+  // Disabled until the API fetch completes — prevents saving stale defaults
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
-  // Keep local state in sync if context updates after mount
-  useEffect(() => {
-    setConditions(contextConditions);
-  }, [contextConditions]);
-
-  useEffect(() => {
-    setIsCustodian(ctxIsCustodian);
-  }, [ctxIsCustodian]);
-
-  useEffect(() => {
-    setPatientName(ctxPatientName ?? "");
-  }, [ctxPatientName]);
+  // NOTE: No context-sync useEffects here. Those effects caused the recurring
+  // "role resets to patient" bug: they would overwrite the user's unsaved edits
+  // whenever the context re-rendered, and if Save was clicked before context
+  // arrived, they'd persist the wrong defaults. All fields are now authoritative
+  // from the API fetch below. Context is only written to AFTER a successful save.
 
   useEffect(() => {
     async function load() {
@@ -78,16 +73,19 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile");
       const { profile } = await res.json() as { profile: Profile | null };
       if (profile) {
-        // Only set fields not managed by context (dob, phone, location).
-        // isCustodian, patientName, and conditions come from context sync effects
-        // so they are NOT set here — the local fetch would otherwise overwrite a
-        // correct context value with a stale/null DB value, causing the visible
-        // "switches back to patient" bug.
+        // Load ALL editable fields from the DB — the single source of truth.
+        // Conditions, role and patient name are set here (not from context sync
+        // effects) so the form always reflects what is actually in the database.
         if (profile.name) setName(profile.name);
         setDob(profile.date_of_birth ?? "");
         setPhone(profile.phone ?? "");
         setLocation(profile.location ?? "");
+        setConditions(profile.conditions ?? []);
+        setIsCustodian(profile.is_custodian ?? false);
+        setPatientName(profile.patient_name ?? "");
       }
+      // Unlock Save only after the real data is in the form
+      setProfileLoaded(true);
     }
     load();
   }, []);
@@ -116,6 +114,21 @@ export default function ProfilePage() {
   }
 
   async function handleSave() {
+    // Hard guard: never save before the real DB data has loaded into the form
+    if (!profileLoaded) return;
+
+    const payload = {
+      name,
+      conditions,
+      date_of_birth: dob || null,
+      phone: phone || null,
+      location: location || null,
+      is_custodian: isCustodian,
+      patient_name: isCustodian ? (patientName || null) : null,
+      onboarding_completed: conditions.length > 0 ? true : undefined,
+    };
+    console.log("[Poppy] Saving profile:", payload);
+
     setSaving(true);
     setSaved(false);
     setSaveError(null);
@@ -123,16 +136,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          conditions,
-          date_of_birth: dob || null,
-          phone: phone || null,
-          location: location || null,
-          is_custodian: isCustodian,
-          patient_name: isCustodian ? (patientName || null) : null,
-          onboarding_completed: conditions.length > 0 ? true : undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({})) as { error?: string };
@@ -355,11 +359,11 @@ export default function ProfilePage() {
       {/* Save */}
       <button
         onClick={handleSave}
-        disabled={saving}
+        disabled={saving || !profileLoaded}
         className="px-8 py-3 rounded-2xl text-sm font-semibold text-white transition-opacity disabled:opacity-50"
         style={{ background: "var(--accent)" }}
       >
-        {saving ? "Saving…" : saved ? "Saved!" : "Save Changes"}
+        {saving ? "Saving…" : saved ? "Saved!" : !profileLoaded ? "Loading…" : "Save Changes"}
       </button>
       {saveError && (
         <p className="mt-3 text-sm font-medium px-3 py-2 rounded-xl" style={{ background: "#fee2e2", color: "#b91c1c" }}>
