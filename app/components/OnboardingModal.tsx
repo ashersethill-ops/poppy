@@ -30,6 +30,9 @@ export default function OnboardingModal({ userIsLoggedIn }: Props) {
     if (localConditions.length === 0) return;
     setSaving(true);
     try {
+      // PROFILE WRITE — triggered by: user clicking "Personalise Poppy" in the
+      // onboarding modal. The modal is only visible when onboarding_completed is
+      // false (or forceOnboarding is true). Only writes conditions + onboarding_completed.
       await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

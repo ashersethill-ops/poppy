@@ -31,7 +31,7 @@ export async function GET(request: Request) {
           console.error("[auth/callback] Failed to create admin client:", adminErr);
           // Fall through — if we can't check the allowlist, let the user in
           // rather than blocking everyone. Remove this once the key is set.
-          return proceedToApp(origin, next, supabase, user.id);
+          return proceedToApp(origin, next, user.id, supabase);
         }
 
         // (2) Log the exact query
@@ -61,7 +61,7 @@ export async function GET(request: Request) {
           console.log("[auth/callback] Email found in allowlist — proceeding.");
         }
 
-        return proceedToApp(origin, next, supabase, user.id);
+        return proceedToApp(origin, next, user.id, supabase);
       }
 
       return NextResponse.redirect(`${origin}${next}`);
@@ -76,18 +76,27 @@ export async function GET(request: Request) {
 async function proceedToApp(
   origin: string,
   next: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  userId: string
+  userId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>
 ) {
+  // Only gate the default /dashboard destination — explicit `next` values
+  // (e.g. a deep link) are trusted as-is.
   if (next === "/dashboard") {
+    // Use the authenticated server client (session already set by exchangeCodeForSession).
+    // This avoids a second admin-client creation that could fail if the service-role
+    // key is missing, which previously caused the catch block to set isOnboarded=true
+    // and skip onboarding for brand-new users.
     const { data: profile } = await supabase
       .from("profiles")
-      .select("onboarding_completed")
+      .select("onboarding_completed, conditions")
       .eq("id", userId)
-      .single();
+      .maybeSingle();          // maybeSingle: returns null (not error) when no row exists
 
-    if (!profile?.onboarding_completed) {
+    const isOnboarded =
+      profile?.onboarding_completed === true ||
+      (Array.isArray(profile?.conditions) && profile.conditions.length > 0);
+
+    if (!isOnboarded) {
       return NextResponse.redirect(`${origin}/onboarding`);
     }
   }

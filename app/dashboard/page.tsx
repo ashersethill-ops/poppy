@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import OnboardingModal from "../components/OnboardingModal";
 import { usePoppyContext } from "../components/PoppyProvider";
 
 // ── Poppy Flower SVG ─────────────────────────────────────────────────────────
@@ -454,8 +453,6 @@ export default function DashboardPage() {
 
   return (
     <>
-      <OnboardingModal userIsLoggedIn={isLoggedIn} />
-
       {/* Navigation drawer */}
       <NavDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} pathname={pathname} />
 

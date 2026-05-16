@@ -109,9 +109,11 @@ export default function PoppyProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     fetch("/api/profile")
-      .then((r) => r.json())
-      .then(({ profile }) => {
-        if (profile) setLoggedIn(true);
+      .then(async (r) => ({ authenticated: r.status !== 401, ...(await r.json()) }))
+      .then(({ authenticated, profile }) => {
+        // Show the Ask Poppy button for any authenticated user, even if their
+        // profile row doesn't exist yet (new signup before first onboarding save).
+        if (authenticated) setLoggedIn(true);
         setConditions(profile?.conditions ?? []);
         setOnboardingCompleted(profile?.onboarding_completed ?? false);
         if (profile?.credits !== undefined) setCredits(profile.credits);
