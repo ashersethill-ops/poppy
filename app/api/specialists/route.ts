@@ -86,7 +86,8 @@ Return ONLY a valid JSON object (no markdown, no explanation) in this exact form
       "title": "MD, FRCP",
       "specialty": "Cardiologist",
       "subspecialty": "Heart Failure & Transplant",
-      "bio": "2-3 sentence bio about the specialist.",
+      "bio": "2-3 sentence professional profile of this specialist — their background, research focus, and clinical strengths.",
+      "whyContact": "1-2 sentence personalised explanation of why THIS specific patient should consider contacting this specialist, referencing their actual conditions, test results, or medications where relevant. Write directly to the patient (use 'you' / 'your').",
       "hospital": "Royal Brompton Hospital",
       "city": "London",
       "country": "UK",
@@ -106,7 +107,8 @@ Rules:
 - Mix male and female (roughly 4 each)
 - Spread across UK, US, Canada, Australia
 - Realistic fictional contact details
-- Specialties must match this patient's specific profile`;
+- Specialties must match this patient's specific profile
+- whyContact must be genuinely personalised — reference the patient's specific conditions, medications, or document findings, not generic reasons`;
 
   try {
     const message = await client.messages.create({

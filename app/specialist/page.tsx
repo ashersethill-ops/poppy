@@ -21,6 +21,7 @@ type Specialist = {
   specialty: string;
   subspecialty: string;
   bio: string;
+  whyContact: string;
   hospital: string;
   city: string;
   country: string;
@@ -55,15 +56,17 @@ function SkeletonCard() {
       style={{ background: "var(--background)", boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}
     >
       <div className="flex items-center gap-4">
-        <div className="w-20 h-20 rounded-full" style={{ background: "var(--soft)" }} />
+        <div className="w-20 h-20 rounded-full flex-shrink-0" style={{ background: "var(--soft)" }} />
         <div className="flex flex-col gap-2 flex-1">
+          <div className="h-3 rounded-full w-1/3" style={{ background: "var(--soft)" }} />
           <div className="h-4 rounded-full w-3/4" style={{ background: "var(--soft)" }} />
           <div className="h-3 rounded-full w-1/2" style={{ background: "var(--soft)" }} />
         </div>
       </div>
       <div className="h-3 rounded-full w-full" style={{ background: "var(--soft)" }} />
       <div className="h-3 rounded-full w-5/6" style={{ background: "var(--soft)" }} />
-      <div className="h-3 rounded-full w-4/6" style={{ background: "var(--soft)" }} />
+      <div className="h-8 rounded-2xl w-full mt-1" style={{ background: "var(--soft)" }} />
+      <div className="h-8 rounded-2xl w-5/6" style={{ background: "var(--soft)" }} />
     </div>
   );
 }
@@ -149,6 +152,23 @@ function SpecialistCard({
 
       {/* Bio */}
       <p className="text-sm text-stone-500 leading-relaxed">{specialist.bio}</p>
+
+      {/* Why contact — personalised reasoning */}
+      {specialist.whyContact && (
+        <div
+          className="rounded-2xl px-4 py-3 flex gap-3"
+          style={{ background: "var(--soft)" }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5" style={{ color: "var(--accent)" }}>
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4M12 8h.01" />
+          </svg>
+          <p className="text-sm leading-relaxed" style={{ color: "var(--primary)" }}>
+            <span className="font-medium" style={{ color: "var(--accent)" }}>Why reach out: </span>
+            {specialist.whyContact}
+          </p>
+        </div>
+      )}
 
       <div style={{ borderTop: "1px solid var(--soft)" }} />
 
