@@ -499,15 +499,6 @@ export default function DashboardPage() {
             </h1>
           </div>
 
-          {/* Avatar */}
-          {greetingName && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--paper)", padding: "6px 14px 6px 8px", borderRadius: 999, border: "1px solid var(--rule)", flexShrink: 0 }}>
-              <div style={{ width: 26, height: 26, borderRadius: 999, background: "var(--poppy)", color: "#FBF6EE", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontSize: 13, fontStyle: "italic" }}>
-                {greetingName[0].toUpperCase()}
-              </div>
-              <span style={{ fontFamily: "'Newsreader', 'Lora', Georgia, serif", fontStyle: "italic", fontSize: 13.5, color: "var(--ink-soft)" }}>{greetingName}</span>
-            </div>
-          )}
         </div>
 
         {/* ── Hub area ──────────────────────────────────────────────────── */}
