@@ -11,9 +11,10 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data, error } = await supabase
-    .from("insurance_documents")
+    .from("documents")
     .select("id, name, size_bytes, uploaded_at")
     .eq("user_id", user.id)
+    .eq("document_type", "insurance")
     .order("uploaded_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -52,17 +53,17 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: doc, error: dbError } = await supabase
-    .from("insurance_documents")
+    .from("documents")
     .insert({
       user_id: user.id,
       name: file.name,
       extracted_text: extractedText,
       size_bytes: file.size,
+      document_type: "insurance",
     })
     .select("id, name, size_bytes, uploaded_at")
     .single();
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
-
   return NextResponse.json({ document: doc });
 }

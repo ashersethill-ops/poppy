@@ -54,10 +54,11 @@ export async function POST(req: NextRequest) {
   let insuranceContext = "";
   if (hasInsuranceDocs) {
     const { data: insDocs } = await supabase
-      .from("insurance_documents")
+      .from("documents")
       .select("name, extracted_text")
       .in("id", insuranceDocIds)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .eq("document_type", "insurance");
 
     if (insDocs?.length) {
       insuranceContext = insDocs

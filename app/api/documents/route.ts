@@ -14,6 +14,7 @@ export async function GET() {
     .from("documents")
     .select("id, name, size_bytes, uploaded_at")
     .eq("user_id", user.id)
+    .neq("document_type", "insurance")
     .order("uploaded_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
