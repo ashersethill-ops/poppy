@@ -252,6 +252,7 @@ export default function FinancialPage() {
   const [insuranceDocsLoaded, setInsuranceDocsLoaded] = useState(false);
   const [uploading,           setUploading]           = useState(false);
   const [currentlyUploading,  setCurrentlyUploading]  = useState<string | null>(null);
+  const [uploadError,         setUploadError]         = useState("");
 
   const [policyAnalysis, setPolicyAnalysis] = useState<PolicyAnalysis | null>(null);
   const [betterPlans,    setBetterPlans]    = useState<BetterPlan[]>([]);
@@ -346,17 +347,22 @@ export default function FinancialPage() {
     const arr = Array.from(files);
     if (!arr.length) return;
     setUploading(true);
+    setUploadError("");
     for (const file of arr) {
       setCurrentlyUploading(file.name);
       try {
         const fd = new FormData();
         fd.append("file", file);
         const res = await fetch("/api/insurance-documents", { method: "POST", body: fd });
-        if (res.ok) {
-          const { document: doc } = await res.json() as { document: InsuranceDoc };
-          setInsuranceDocs((p) => [doc, ...p]);
+        const json = await res.json().catch(() => ({})) as { document?: InsuranceDoc; error?: string };
+        if (res.ok && json.document) {
+          setInsuranceDocs((p) => [json.document!, ...p]);
+        } else {
+          setUploadError(json.error ?? `Upload failed (${res.status})`);
         }
-      } catch { /* ignore per-file errors */ }
+      } catch (e) {
+        setUploadError(e instanceof Error ? e.message : "Upload failed");
+      }
     }
     setCurrentlyUploading(null);
     setUploading(false);
@@ -466,7 +472,12 @@ export default function FinancialPage() {
         <input ref={fileRef} type="file" multiple accept=".pdf,.txt" style={{ display: "none" }}
           onChange={(e) => e.target.files && handleFiles(e.target.files)} />
 
-        {insuranceDocs.length === 0 && (
+        {uploadError && (
+          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 13, color: "#dc2626", margin: "10px 0 0" }}>
+            {uploadError}
+          </p>
+        )}
+        {!uploadError && insuranceDocs.length === 0 && (
           <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: 13, color: "var(--ink-faded)", margin: "10px 0 0" }}>
             No policy uploaded yet — Poppy will still suggest plans and savings tips based on your conditions.
           </p>
