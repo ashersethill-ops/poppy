@@ -18,6 +18,7 @@ const ROLE_NAV: Record<Role, { href: string; label: string }[]> = {
     { href: "/learn",      label: "Learn" },
     { href: "/trials",     label: "Trials" },
     { href: "/community",  label: "Community" },
+    { href: "/financial",  label: "Benefits & Costs" },
     { href: "/my-doctors", label: "My Doctors" },
   ],
   doctor: [
@@ -33,6 +34,7 @@ const ROLE_NAV: Record<Role, { href: string; label: string }[]> = {
     { href: "/learn",      label: "Learn" },
     { href: "/trials",     label: "Trials" },
     { href: "/community",  label: "Community" },
+    { href: "/financial",  label: "Benefits & Costs" },
     { href: "/my-doctors", label: "My Doctors" },
   ],
 };

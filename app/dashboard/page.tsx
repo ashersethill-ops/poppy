@@ -153,6 +153,15 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: "/financial",
+    label: "Benefits & Costs",
+    icon: (
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+      </svg>
+    ),
+  },
+  {
     href: "/my-doctors",
     label: "My Doctors",
     icon: (
@@ -431,16 +440,19 @@ export default function DashboardPage() {
     { label: "Community",         accent: "#D9542B", href: "/community",  status: communityStatus   ?? "", loading: postsLoading },
     { label: "Documents",         accent: "#A03A1C", href: "/documents",  status: `${documents.length} uploaded` },
     { label: "Clinical Trials",   accent: "#B07E2C", href: "/trials",     status: trialsStatus      ?? "", loading: trialsLoading },
+    { label: "Benefits & Costs",  accent: "#7C8E6B", href: "/financial",  status: hasConditions ? "optimise costs" : "add conditions" },
   ];
 
   // Orbital positions matching the Garden design (% of container)
+  // Bottom row expanded to 3 cards to accommodate the 7th orbital
   const positions = [
     { left: "20%", top: "20%" },
     { left: "80%", top: "20%" },
     { left: "12%", top: "58%" },
     { left: "88%", top: "58%" },
-    { left: "24%", top: "92%" },
-    { left: "76%", top: "92%" },
+    { left: "18%", top: "92%" },
+    { left: "50%", top: "92%" },
+    { left: "82%", top: "92%" },
   ];
 
   // Center point (%) for bezier curve origins
